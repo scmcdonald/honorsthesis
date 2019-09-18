@@ -1,0 +1,46 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(reticulate)
+use_python("C:/Users/Sarah McDonald/AppData/Local/Programs/Python/Python37/python.exe")
+```
+
+
+```{python}
+#this is the library to
+import requests
+import re
+
+response = requests.get('http://www.usccb.org/about/bishops-and-dioceses/all-dioceses.cfm')
+
+#. means any character
+#* 0 to infinite
+dioceses=re.findall(r'important;">(.*?)</td>',response.text)
+print(len(dioceses))
+
+#FOR LOOP TO PRINT OUT THE RESULTS
+for d in dioceses:
+    print(d)
+
+#OPEN A FILE, WRITE OUT THE RESULTS
+with open ('dioceses.txt','w',encoding='utf8') as my_file:
+    #takes each element of the dioceses list and adds a \n which is a line break
+    my_file.writelines("\n".join(dioceses))
+```
+
+
+```{python}
+import requests
+import re
+
+response = requests.get('http://www.bishop-accountability.org/AtAGlance/USCCB_Yearly_Data_on_Accused_Priests.htm')
+
+accused=re.findall(r'important;">(.*?)</td>',response.text)
+print(len(dioceses))
+
+<font color="#CC0000">387</font>
+```
+
