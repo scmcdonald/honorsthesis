@@ -2,6 +2,7 @@ library(gtools)
 library(dplyr)
 library(stringr) #to use str_trim
 library(stringi)
+variables <- read.csv("updated-variables.csv")
 
 #https://nces.ed.gov/ipeds/pdf/NPEC/data/NPEC_Paper_IPEDS_History_and_Origins_2018.pdf
 
@@ -113,7 +114,7 @@ ic9697_a$YEAR <- "1996"
 # List of Data frames
 HD <- mget(ls(pattern = c("hd|ic")))
 
-variables <- read.csv("updated-variables.csv")
+
 levels(variables$Variable.Name) <- c(levels(variables$Variable.Name),"YEAR") 
 variables[nrow(variables) + 1,] = list(Table= factor("HD"),Variable.Number= 9999, Variable.Name= factor("YEAR"))
 HD_var <- variables[variables$Table == "HD", 3]
@@ -214,6 +215,9 @@ EFA_var <- variables[variables$Table == "EF_A", 3]
 EFA_df <- do.call("smartbind", EFA)
 EFA_df <- EFA_df[ ,colnames(EFA_df) %in% EFA_var]
 
+
+
+#Before 2000
 survey_file <- "ef"
 capital_survey_file <- "EF"
 extra <- "_a"
@@ -272,7 +276,7 @@ EFA2_df <- EFA2_df[ ,colnames(EFA2_df) %in% EFA_var]
 
 
 
-
+################################efCP#####################################################3
 
 
 
@@ -287,14 +291,27 @@ for (year in 2016){
          getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra)))
 }
 
+
+
+######################IC#################
+
 survey_file <- "ic"
 capital_survey_file <- "IC"
 extra <- ""
 capital_extra <- ""
 
-for (year in 1980:2017){
-  try(
+#2000-2012. Available from 1980
+for (year in 2000:2017){
     assign(paste(survey_file, year, extra, sep = ""), 
-           getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra)))
+           getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
 }
 
+IC <- mget(ls(pattern = "ic\\d{4}"))
+
+levels(variables$Variable.Name) <- c(levels(variables$Variable.Name),"YEAR") 
+variables[nrow(variables) + 1,] = list(Table= factor("IC"),Variable.Number= 9999, Variable.Name= factor("YEAR"))
+IC_var <- variables[variables$Table == "IC", 3]
+
+# Merge and and only use the columns in our variable list
+IC_df <- do.call("smartbind", IC)
+IC_df <- IC_df[ ,colnames(IC_df) %in% IC_var]
