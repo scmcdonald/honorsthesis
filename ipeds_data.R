@@ -367,7 +367,7 @@ EFA2_df <- EFA2_df[ ,colnames(EFA2_df) %in% EFA_var]
 
 
 
-################################efCP#####################################################3
+################################efCP#####################################################
 
 
 
@@ -376,11 +376,34 @@ capital_survey_file <- "EF"
 extra <- "cp"
 capital_extra <- "CP"
 
-for (year in 2016){
+for (year in 2000:2016){
   try(
   assign(paste(survey_file, year, extra, sep = ""), 
          getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra)))
 }
+
+#2006 
+#Grand total
+colnames(ef2006cp)[colnames(ef2006cp)=="EFRACE24"] <- "EFTOTLT"
+
+# total men
+colnames(ef2006cp)[colnames(ef2006cp)=="EFRACE15"] <- "EFTOTLM"
+
+# total hispanic
+colnames(ef2006cp)[colnames(ef2006cp)=="EFRACE21"] <- "EFHISPT"
+
+#KEEP EDITING HERE#
+
+EFC <- mget(ls(pattern = "^ef\\d{4}cp$"))
+
+levels(variables$Variable.Name) <- c(levels(variables$Variable.Name),"YEAR") 
+variables[nrow(variables) + 1,] = list(Table= factor("EF_CP"),Variable.Number= 9999, Variable.Name= factor("YEAR"))
+EFC_var <- variables[variables$Table == "EF_CP", 3]
+
+# Merge and and only use the columns in our variable list
+EFC <- lapply(EFC, function(x) x[(names(x)) %in% EFC_var])
+EFC_df <- do.call("smartbind", EFC)
+
 
 
 
