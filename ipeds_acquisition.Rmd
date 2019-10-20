@@ -1,0 +1,137 @@
+---
+title: "IPEDS Acquisition"
+author: "Sarah McDonald"
+date: "October 19, 2019"
+output: html_document
+---
+This document will discuss the process for acquiring five IPEDS data tables:
+
+* Fall Enrollment - Race/ethnicity, gender, attendance status, and level of student
+
+* Fall Enrollment - Major field of study, race/ethnicity, gender, attendance status, and level of student
+
+* 12-Month Enrollment - 12-month unduplicated headcount: 2017-18
+
+* Institutional Characteristics - Directory information
+
+* Institutional Characteristics - Educational offerings, organization, services and athletic associations
+
+# Set up
+For the acquisition, four packages are needed: *gtools*, *dplyr*, *stringr*, and *stringi*. Additionally, we read in an csv file with the variables we want from each table.
+```{r, warning= FALSE, message= FALSE}
+library(gtools)
+library(dplyr)
+library(stringr) #to use str_trim
+library(stringi)
+variables <- read.csv("updated-variables.csv")
+```
+
+We create a function called "Upper_Converter" that changes all strings to uppercase. Then, we also create a function call get "IPEDSData" that allows acquisition of the IPEDS data from the IPEDS website. When the data is read in, all variable names are made uppercase, and a year column is added to each dataset.
+```{r}
+
+Upper_Converter <- function(strings){
+  toupper(str_trim(iconv(strings, "ASCII", "UTF-8", sub="")))
+}
+
+getIPEDSData <- function(year, survey_file, capital_survey_file, extra = "", capital_extra = ""){
+  dataset <- NULL
+  temp <- tempfile()
+  download.file(paste("https://nces.ed.gov/ipeds/datacenter/data/",  capital_survey_file, year, capital_extra, ".zip", sep = ""), temp)
+  dataset <- read.csv(unz(temp, paste(survey_file, year, extra, ".csv", sep = "")))
+  unlink(temp)
+  names(dataset) <- toupper(names(dataset))
+  dataset <- dataset %>% mutate_if(is.factor, Upper_Converter)
+  dataset$YEAR <- year
+  dataset
+}
+```
+
+# Institutional Characteristics - Directory information
+
+We use the loops below to acquire directory information from IPEDS for 1995 - 2017. Directory information is available from 1986. We use different loops below as naming conventions for the various tables change prior to 2002. We will need to come up with CBSA and Lat/Long for missing values in earlier years
+```{r}
+# 2002 - 2017
+survey_file <- "hd"
+capital_survey_file <- "HD"
+extra <- ""
+capital_extra <- ""
+
+for (year in 2002:2017){
+  assign(paste(survey_file, year, extra, sep = ""), 
+    getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+
+# 2000 - 2001
+survey_file <- "fa"
+capital_survey_file <- "FA"
+extra <- "hd"
+capital_extra <- "HD"
+
+for (year in 2000:2001){
+  assign(paste(survey_file, year, extra, sep = ""), 
+    getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+
+# 1999
+survey_file <- "ic"
+capital_survey_file <- "IC"
+extra <- "_hd"
+capital_extra <- "_HD"
+
+for (year in 99){
+  assign(paste(survey_file, year, extra, sep = ""), 
+    getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+ic99_hd$YEAR <- "1999"
+
+# 1998
+survey_file <- "ic"
+capital_survey_file <- "IC"
+extra <- "hdac"
+capital_extra <- "HDAC"
+
+for (year in 98){
+  assign(paste(survey_file, year, extra, sep = ""), 
+    getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+ic98hdac$YEAR <- "1998"
+
+# 1997
+survey_file <- "ic"
+capital_survey_file <- "ic"
+extra <- "_hdr"
+capital_extra <- "_HDR"
+
+for (year in 9798){
+  assign(paste(survey_file, year, extra, sep = ""), 
+    getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+ic9798_hdr$YEAR <- "1997"
+
+# 1995 - 1996
+survey_file <- "ic"
+capital_survey_file <- "ic"
+extra <- "_a"
+capital_extra <- "_A"
+
+for (year in c(9596,9697)){
+  assign(paste(survey_file, year, extra, sep = ""), 
+    getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+ic9596_a$YEAR <- "1995"
+ic9697_a$YEAR <- "1996"
+```
+
+We then use the following code to select our variables of interest from each directory information table and merge the tables for each year into one large table.
+```{r, warning = FALSE, message=FALSE}
+HD <- mget(ls(pattern = c("hd|ic")))
+
+levels(variables$Variable.Name) <- c(levels(variables$Variable.Name),"YEAR") 
+variables[nrow(variables) + 1,] = list(Table= factor("HD"),Variable.Number= 9999, Variable.Name= factor("YEAR"))
+HD_var <- variables[variables$Table == "HD", 3]
+
+HD <- lapply(HD, function(x) x[(names(x)) %in% HD_var])
+HD_df <- do.call("smartbind", HD)
+```
+
+

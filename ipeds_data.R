@@ -238,7 +238,7 @@ colnames(ef2001a)[colnames(ef2001a)=="EFRACE16"] <- "EFTOTLW"
 #total men and women
 ef2001a$EFTOTLT <- ef2001a$EFTOTLM + ef2001a$EFTOTLW
 
-#2001 total Hispanic men
+#2001 total Hispanic 
 colnames(ef2001a)[colnames(ef2001a)=="EFRACE09"] <- "EFHISPM"
 colnames(ef2001a)[colnames(ef2001a)=="EFRACE10"] <- "EFHISPW"
 
@@ -392,7 +392,34 @@ colnames(ef2006cp)[colnames(ef2006cp)=="EFRACE15"] <- "EFTOTLM"
 # total hispanic
 colnames(ef2006cp)[colnames(ef2006cp)=="EFRACE21"] <- "EFHISPT"
 
-#KEEP EDITING HERE#
+#2004 
+#Grand total
+
+colnames(ef2004cp)[colnames(ef2004cp) == "EFRACE24"] <- "EFTOTLT"
+
+#total men
+
+colnames(ef2004cp)[colnames(ef2004cp) == "EFRACE15"] <- "EFTOTLM"
+
+#total hispanic
+
+colnames(ef2004cp)[colnames(ef2004cp)=="EFRACE21"] <- "EFHISPT"
+
+#2002
+colnames(ef2002cp)[colnames(ef2002cp) == "EFRACE24"] <- "EFTOTLT"
+
+#total men
+
+colnames(ef2002cp)[colnames(ef2002cp) == "EFRACE15"] <- "EFTOTLM"
+
+#total hispanic
+
+colnames(ef2002cp)[colnames(ef2002cp)=="EFRACE21"] <- "EFHISPT"
+
+#2000
+
+
+
 
 EFC <- mget(ls(pattern = "^ef\\d{4}cp$"))
 
