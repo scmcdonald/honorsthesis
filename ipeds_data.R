@@ -36,7 +36,7 @@ extra <- ""
 capital_extra <- ""
 
 # getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra)
-for (year in 2000:2017){
+for (year in 2002:2017){
   try(
     assign(paste(survey_file, year, extra, sep = ""), 
       getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra)))
@@ -128,7 +128,7 @@ HD_df <- do.call("smartbind", HD)
 
 # Will need to come up with CBSA and Lat/Long for missing values in earlier years
 
-HD_df$YEAR[HD_df$YEAR == "98"] <- "1998"
+
 
 ################EFFY#######################3
 survey_file <- "effy"
@@ -418,6 +418,19 @@ colnames(ef2002cp)[colnames(ef2002cp)=="EFRACE21"] <- "EFHISPT"
 
 #2000
 
+#2000 Total Men
+colnames(ef2000cp)[colnames(ef2000cp)=="EFRACE15"] <- "EFTOTLM"
+#2000 Total Women
+colnames(ef2000cp)[colnames(ef2000cp)=="EFRACE16"] <- "EFTOTLW"
+#total men and women
+ef2000cp$EFTOTLT <- ef2000cp$EFTOTLM + ef2000cp$EFTOTLW
+
+#2001 total Hispanic 
+colnames(ef2000cp)[colnames(ef2000cp)=="EFRACE09"] <- "EFHISPM"
+colnames(ef2000cp)[colnames(ef2000cp)=="EFRACE10"] <- "EFHISPW"
+
+#total hispanic men and women
+ef2000cp$EFHISPT <- ef2000cp$EFHISPW + ef2000cp$EFHISPM
 
 
 

@@ -27,7 +27,7 @@ variables <- read.csv("updated-variables.csv")
 ```
 
 We create a function called "Upper_Converter" that changes all strings to uppercase. Then, we also create a function call get "IPEDSData" that allows acquisition of the IPEDS data from the IPEDS website. When the data is read in, all variable names are made uppercase, and a year column is added to each dataset.
-```{r}
+```{r, warning = FALSE, message = FALSE}
 
 Upper_Converter <- function(strings){
   toupper(str_trim(iconv(strings, "ASCII", "UTF-8", sub="")))
@@ -49,7 +49,7 @@ getIPEDSData <- function(year, survey_file, capital_survey_file, extra = "", cap
 # Institutional Characteristics - Directory information
 
 We use the loops below to acquire directory information from IPEDS for 1995 - 2017. Directory information is available from 1986. We use different loops below as naming conventions for the various tables change prior to 2002. We will need to come up with CBSA and Lat/Long for missing values in earlier years
-```{r}
+```{r, warning = FALSE, message = FALSE}
 # 2002 - 2017
 survey_file <- "hd"
 capital_survey_file <- "HD"
@@ -133,5 +133,313 @@ HD_var <- variables[variables$Table == "HD", 3]
 HD <- lapply(HD, function(x) x[(names(x)) %in% HD_var])
 HD_df <- do.call("smartbind", HD)
 ```
+
+## 12-month unduplicated headcount
+
+We use the loops below to acquire the 12-month unduplicated headcount information from IPEDS for 2001 - 2017. In 2008, the variable names changed from the old system to a new system, so I choose the new naming system. The old and new variables are included in 2008-2010. We changed the variable names in the tables prior to 2007 to the corresponding variable name that matches the new system. We do not collect data prior to 2001, as data is divided by undergraduates and graduates rather than race and gender. It is important to note that the 2001 data does not include the "EFFYLEV" variable.
+
+
+```{r, warning = FALSE, message = FALSE}
+survey_file <- "effy"
+capital_survey_file <- "EFFY"
+extra <- ""
+capital_extra <- ""
+
+
+for (year in 2002:2017) {
+  assign(paste(survey_file, year, extra, sep = ""), 
+         getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+
+colnames(effy2002)[colnames(effy2002)=="FYRACE21"] <- "EFYHISPT"
+colnames(effy2003)[colnames(effy2003)=="FYRACE21"] <- "EFYHISPT"
+colnames(effy2004)[colnames(effy2004)=="FYRACE21"] <- "EFYHISPT"
+colnames(effy2005)[colnames(effy2005)=="FYRACE21"] <- "EFYHISPT"
+colnames(effy2006)[colnames(effy2006)=="FYRACE21"] <- "EFYHISPT"
+colnames(effy2007)[colnames(effy2007)=="FYRACE21"] <- "EFYHISPT"
+
+colnames(effy2002)[colnames(effy2002)=="FYRACE24"] <- "EFYTOTLT"
+colnames(effy2003)[colnames(effy2003)=="FYRACE24"] <- "EFYTOTLT"
+colnames(effy2004)[colnames(effy2004)=="FYRACE24"] <- "EFYTOTLT"
+colnames(effy2005)[colnames(effy2005)=="FYRACE24"] <- "EFYTOTLT"
+colnames(effy2006)[colnames(effy2006)=="FYRACE24"] <- "EFYTOTLT"
+colnames(effy2007)[colnames(effy2007)=="FYRACE24"] <- "EFYTOTLT"
+
+colnames(effy2002)[colnames(effy2002)=="FYRACE15"] <- "EFYTOTLM"
+colnames(effy2003)[colnames(effy2003)=="FYRACE15"] <- "EFYTOTLM"
+colnames(effy2004)[colnames(effy2004)=="FYRACE15"] <- "EFYTOTLM"
+colnames(effy2005)[colnames(effy2005)=="FYRACE15"] <- "EFYTOTLM"
+colnames(effy2006)[colnames(effy2006)=="FYRACE15"] <- "EFYTOTLM"
+colnames(effy2007)[colnames(effy2007)=="FYRACE15"] <- "EFYTOTLM"
+
+
+#2008 has two counts, old and new, the number of missing values is the same for both, so I am choosing the new
+length(is.na(effy2008$FYRACE21))
+length(is.na(effy2008$EFYHISPT))
+
+length(is.na(effy2009$FYRACE21))
+length(is.na(effy2009$EFYHISPT))
+
+length(is.na(effy2010$FYRACE21))
+length(is.na(effy2010$EFYHISPT))
+
+survey_file <- "ef"
+capital_survey_file <- "EF"
+extra <- "d1"
+capital_extra <- "D1"
+
+for (year in 2001){
+  try(
+    assign(paste(survey_file, year, extra, sep = ""), 
+           getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra)))
+}
+
+#No "EFFYLEV" value
+
+#Grand Total
+colnames(ef2001d1)[colnames(ef2001d1)=="FYRACE17"] <- "EFYTOTLT"
+ 
+#Total Men
+colnames(ef2001d1)[colnames(ef2001d1)=="FYRACE15"] <- "EFYTOTLM"
+
+#total Hispanic men
+colnames(ef2001d1)[colnames(ef2001d1)=="FYRACE09"] <- "EFYHISPM"
+colnames(ef2001d1)[colnames(ef2001d1)=="FYRACE10"] <- "EFYHISPW"
+
+#total hispanic men and women
+ef2001d1$EFYHISPT <- ef2001d1$EFYHISPW + ef2001d1$EFYHISPM
+
+```
+
+We then use the following code to select our variables of interest from each 12-month enrollment table and merge the tables for each year into one large table. 
+
+```{r, warning = FALSE, message = FALSE}
+# List of Data frames
+EFFY <- mget(ls(pattern = "effy|^ef\\d{4}d\\d?$"))
+
+levels(variables$Variable.Name) <- c(levels(variables$Variable.Name),"YEAR") 
+variables[nrow(variables) + 1,] = list(Table= factor("EFFY"),Variable.Number= 9999, Variable.Name= factor("YEAR"))
+EFFY_var <- variables[variables$Table == "EFFY", 3]
+
+# Merge and and only use the columns in our variable list
+
+EFFY <- lapply(EFFY, function(x) x[(names(x)) %in% EFFY_var])
+EFFY_df <- do.call("smartbind", EFFY)
+```
+
+# Fall Enrollment - Race/ethnicity, gender, attendance status, and level of student
+We use the loops below to acquire the fall enrollment data (Race/Ethnicty/Gender) from IPEDS for 2000 - 2017. In 2008, the variable names changed from the old system to a new system, so I choose the new naming system. We changed the variable names in the tables prior to 2008 to the corresponding variable name that matches the new system. *I have code that can acquire 1980, 1986-1999 if needed.*
+
+```{r, warning = FALSE, message = FALSE}
+survey_file <- "ef"
+capital_survey_file <- "EF"
+extra <- "a"
+capital_extra <- "A"
+
+for (year in 2000:2017){
+  assign(paste(survey_file, year, extra, sep = ""), 
+         getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+
+#fix 2000
+#2000 total men
+colnames(ef2000a)[colnames(ef2000a)=="EFRACE15"] <- "EFTOTLM"
+#2000 total women
+colnames(ef2000a)[colnames(ef2000a)=="EFRACE16"] <- "EFTOTLW"
+#total men and women
+ef2000a$EFTOTLT <- ef2000a$EFTOTLM + ef2000a$EFTOTLW
+
+
+#2000 total Hispanic men
+colnames(ef2000a)[colnames(ef2000a)=="EFRACE09"] <- "EFHISPM"
+colnames(ef2000a)[colnames(ef2000a)=="EFRACE10"] <- "EFHISPW"
+
+#total hispanic men and women
+ef2000a$EFHISPT <- ef2000a$EFHISPW + ef2000a$EFHISPM
+
+
+#fix 2001
+#2001 total men
+colnames(ef2001a)[colnames(ef2001a)=="EFRACE15"] <- "EFTOTLM"
+#2001 total women
+colnames(ef2001a)[colnames(ef2001a)=="EFRACE16"] <- "EFTOTLW"
+#total men and women
+ef2001a$EFTOTLT <- ef2001a$EFTOTLM + ef2001a$EFTOTLW
+
+#2001 total Hispanic 
+colnames(ef2001a)[colnames(ef2001a)=="EFRACE09"] <- "EFHISPM"
+colnames(ef2001a)[colnames(ef2001a)=="EFRACE10"] <- "EFHISPW"
+
+#total hispanic men and women
+ef2001a$EFHISPT <- ef2001a$EFHISPW + ef2001a$EFHISPM
+
+#fix 2002
+#grand total
+colnames(ef2002a)[colnames(ef2002a)=="EFRACE24"] <- "EFTOTLT"
+#total men
+colnames(ef2002a)[colnames(ef2002a)=="EFRACE15"] <- "EFTOTLM"
+# total hispanic men and women
+colnames(ef2002a)[colnames(ef2002a)=="EFRACE21"] <- "EFHISPT"
+
+#fix 2003
+#grand total
+colnames(ef2003a)[colnames(ef2003a)=="EFRACE24"] <- "EFTOTLT"
+#total men
+colnames(ef2003a)[colnames(ef2003a)=="EFRACE15"] <- "EFTOTLM"
+# total hispanic men and women
+colnames(ef2003a)[colnames(ef2003a)=="EFRACE21"] <- "EFHISPT"
+
+#fix 2004
+#grand total
+colnames(ef2004a)[colnames(ef2004a)=="EFRACE24"] <- "EFTOTLT"
+#total men
+colnames(ef2004a)[colnames(ef2004a)=="EFRACE15"] <- "EFTOTLM"
+# total hispanic men and women
+colnames(ef2004a)[colnames(ef2004a)=="EFRACE21"] <- "EFHISPT"
+
+#fix 2005
+#grand total
+colnames(ef2005a)[colnames(ef2005a)=="EFRACE24"] <- "EFTOTLT"
+#total men
+colnames(ef2005a)[colnames(ef2005a)=="EFRACE15"] <- "EFTOTLM"
+# total hispanic men and women
+colnames(ef2005a)[colnames(ef2005a)=="EFRACE21"] <- "EFHISPT"
+
+#fix 2006
+#grand total
+colnames(ef2006a)[colnames(ef2006a)=="EFRACE24"] <- "EFTOTLT"
+#total men
+colnames(ef2006a)[colnames(ef2006a)=="EFRACE15"] <- "EFTOTLM"
+# total hispanic men and women
+colnames(ef2006a)[colnames(ef2006a)=="EFRACE21"] <- "EFHISPT"
+
+#fix 2007
+#grand total
+colnames(ef2007a)[colnames(ef2007a)=="EFRACE24"] <- "EFTOTLT"
+#total men
+colnames(ef2007a)[colnames(ef2007a)=="EFRACE15"] <- "EFTOTLM"
+# total hispanic men and women
+colnames(ef2007a)[colnames(ef2007a)=="EFRACE21"] <- "EFHISPT"
+
+
+
+```
+
+We then use the following code to select our variables of interest from each fall enrollment(race/ethnicity/gender) table and merge the tables for each year into one large table. 
+
+```{r, warning = FALSE, message = FALSE}
+#2000-2017 (file is too big)
+EFA <- mget(ls(pattern = c("^ef\\d{4}a$")))
+
+levels(variables$Variable.Name) <- c(levels(variables$Variable.Name),"YEAR") 
+variables[nrow(variables) + 1,] = list(Table= factor("EF_A"),Variable.Number= 9999, Variable.Name= factor("YEAR"))
+EFA_var <- variables[variables$Table == "EF_A", 3]
+
+# Merge and and only use the columns in our variable list
+
+EFA <- lapply(EFA, function(x) x[(names(x)) %in% EFA_var])
+EFA_df <- do.call("smartbind", EFA)
+```
+
+* Fall Enrollment - Major field of study, race/ethnicity, gender, attendance status, and level of student
+
+The code below acquires data for the major field of study enrollment data. The data is available for even years between 2000-2016.
+
+*I can easily write code to acquire the data for year before 2000 if needed.*
+
+```{r, warning= FALSE, message=FALSE}
+survey_file <- "ef"
+capital_survey_file <- "EF"
+extra <- "cp"
+capital_extra <- "CP"
+
+for (year in 2000:2016){
+  try(
+  assign(paste(survey_file, year, extra, sep = ""), 
+         getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra)))
+}
+
+#2006 
+#Grand total
+colnames(ef2006cp)[colnames(ef2006cp)=="EFRACE24"] <- "EFTOTLT"
+
+# total men
+colnames(ef2006cp)[colnames(ef2006cp)=="EFRACE15"] <- "EFTOTLM"
+
+# total hispanic
+colnames(ef2006cp)[colnames(ef2006cp)=="EFRACE21"] <- "EFHISPT"
+
+#2004 
+#Grand total
+
+colnames(ef2004cp)[colnames(ef2004cp) == "EFRACE24"] <- "EFTOTLT"
+
+#total men
+
+colnames(ef2004cp)[colnames(ef2004cp) == "EFRACE15"] <- "EFTOTLM"
+
+#total hispanic
+
+colnames(ef2004cp)[colnames(ef2004cp)=="EFRACE21"] <- "EFHISPT"
+
+#2002
+colnames(ef2002cp)[colnames(ef2002cp) == "EFRACE24"] <- "EFTOTLT"
+
+#total men
+
+colnames(ef2002cp)[colnames(ef2002cp) == "EFRACE15"] <- "EFTOTLM"
+
+#total hispanic
+
+colnames(ef2002cp)[colnames(ef2002cp)=="EFRACE21"] <- "EFHISPT"
+
+#2000
+
+#2000 Total Men
+colnames(ef2000cp)[colnames(ef2000cp)=="EFRACE15"] <- "EFTOTLM"
+#2000 Total Women
+colnames(ef2000cp)[colnames(ef2000cp)=="EFRACE16"] <- "EFTOTLW"
+#total men and women
+ef2000cp$EFTOTLT <- ef2000cp$EFTOTLM + ef2000cp$EFTOTLW
+
+#2001 total Hispanic 
+colnames(ef2000cp)[colnames(ef2000cp)=="EFRACE09"] <- "EFHISPM"
+colnames(ef2000cp)[colnames(ef2000cp)=="EFRACE10"] <- "EFHISPW"
+
+#total hispanic men and women
+ef2000cp$EFHISPT <- ef2000cp$EFHISPW + ef2000cp$EFHISPM
+```
+
+# Institutional Characteristics - Educational offerings, organization, services and athletic associations
+
+The code below acquires the institutional characteristics variables of interest, specifically religious affiliation for 2000-2017. *The data is available from 1980 if needed - I can easily write code to include earlier years if needed*.
+```{r, warning = FALSE, message = FALSE}
+survey_file <- "ic"
+capital_survey_file <- "IC"
+extra <- ""
+capital_extra <- ""
+
+#2000-2012. Available from 1980
+for (year in 2000:2017){
+    assign(paste(survey_file, year, extra, sep = ""), 
+           getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+```
+
+Then, we made one big data frame.
+```{r, warning = FALSE, message = FALSE}
+IC <- mget(ls(pattern = "^ic\\d{4}$"))
+
+levels(variables$Variable.Name) <- c(levels(variables$Variable.Name),"YEAR") 
+variables[nrow(variables) + 1,] = list(Table= factor("IC"),Variable.Number= 9999, Variable.Name= factor("YEAR"))
+IC_var <- variables[variables$Table == "IC", 3]
+
+# Merge and and only use the columns in our variable list
+IC <- lapply(IC, function(x) x[(names(x)) %in% IC_var])
+IC_df <- do.call("smartbind", IC)
+```
+
+
+
 
 

@@ -312,6 +312,302 @@ HD_var &lt;- variables[variables$Table == &quot;HD&quot;, 3]
 
 HD &lt;- lapply(HD, function(x) x[(names(x)) %in% HD_var])
 HD_df &lt;- do.call(&quot;smartbind&quot;, HD)</code></pre>
+<div id="month-unduplicated-headcount" class="section level2">
+<h2>12-month unduplicated headcount</h2>
+<p>We use the loops below to acquire the 12-month unduplicated headcount information from IPEDS for 2001 - 2017. In 2008, the variable names changed from the old system to a new system, so I choose the new naming system. The old and new variables are included in 2008-2010. We changed the variable names in the tables prior to 2007 to the corresponding variable name that matches the new system. We do not collect data prior to 2001, as data is divided by undergraduates and graduates rather than race and gender. It is important to note that the 2001 data does not include the “EFFYLEV” variable.</p>
+<pre class="r"><code>survey_file &lt;- &quot;effy&quot;
+capital_survey_file &lt;- &quot;EFFY&quot;
+extra &lt;- &quot;&quot;
+capital_extra &lt;- &quot;&quot;
+
+
+for (year in 2002:2017) {
+  assign(paste(survey_file, year, extra, sep = &quot;&quot;), 
+         getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+
+colnames(effy2002)[colnames(effy2002)==&quot;FYRACE21&quot;] &lt;- &quot;EFYHISPT&quot;
+colnames(effy2003)[colnames(effy2003)==&quot;FYRACE21&quot;] &lt;- &quot;EFYHISPT&quot;
+colnames(effy2004)[colnames(effy2004)==&quot;FYRACE21&quot;] &lt;- &quot;EFYHISPT&quot;
+colnames(effy2005)[colnames(effy2005)==&quot;FYRACE21&quot;] &lt;- &quot;EFYHISPT&quot;
+colnames(effy2006)[colnames(effy2006)==&quot;FYRACE21&quot;] &lt;- &quot;EFYHISPT&quot;
+colnames(effy2007)[colnames(effy2007)==&quot;FYRACE21&quot;] &lt;- &quot;EFYHISPT&quot;
+
+colnames(effy2002)[colnames(effy2002)==&quot;FYRACE24&quot;] &lt;- &quot;EFYTOTLT&quot;
+colnames(effy2003)[colnames(effy2003)==&quot;FYRACE24&quot;] &lt;- &quot;EFYTOTLT&quot;
+colnames(effy2004)[colnames(effy2004)==&quot;FYRACE24&quot;] &lt;- &quot;EFYTOTLT&quot;
+colnames(effy2005)[colnames(effy2005)==&quot;FYRACE24&quot;] &lt;- &quot;EFYTOTLT&quot;
+colnames(effy2006)[colnames(effy2006)==&quot;FYRACE24&quot;] &lt;- &quot;EFYTOTLT&quot;
+colnames(effy2007)[colnames(effy2007)==&quot;FYRACE24&quot;] &lt;- &quot;EFYTOTLT&quot;
+
+colnames(effy2002)[colnames(effy2002)==&quot;FYRACE15&quot;] &lt;- &quot;EFYTOTLM&quot;
+colnames(effy2003)[colnames(effy2003)==&quot;FYRACE15&quot;] &lt;- &quot;EFYTOTLM&quot;
+colnames(effy2004)[colnames(effy2004)==&quot;FYRACE15&quot;] &lt;- &quot;EFYTOTLM&quot;
+colnames(effy2005)[colnames(effy2005)==&quot;FYRACE15&quot;] &lt;- &quot;EFYTOTLM&quot;
+colnames(effy2006)[colnames(effy2006)==&quot;FYRACE15&quot;] &lt;- &quot;EFYTOTLM&quot;
+colnames(effy2007)[colnames(effy2007)==&quot;FYRACE15&quot;] &lt;- &quot;EFYTOTLM&quot;
+
+
+#2008 has two counts, old and new, the number of missing values is the same for both, so I am choosing the new
+length(is.na(effy2008$FYRACE21))</code></pre>
+<pre><code>## [1] 15860</code></pre>
+<pre class="r"><code>length(is.na(effy2008$EFYHISPT))</code></pre>
+<pre><code>## [1] 15860</code></pre>
+<pre class="r"><code>length(is.na(effy2009$FYRACE21))</code></pre>
+<pre><code>## [1] 16002</code></pre>
+<pre class="r"><code>length(is.na(effy2009$EFYHISPT))</code></pre>
+<pre><code>## [1] 16002</code></pre>
+<pre class="r"><code>length(is.na(effy2010$FYRACE21))</code></pre>
+<pre><code>## [1] 16245</code></pre>
+<pre class="r"><code>length(is.na(effy2010$EFYHISPT))</code></pre>
+<pre><code>## [1] 16245</code></pre>
+<pre class="r"><code>survey_file &lt;- &quot;ef&quot;
+capital_survey_file &lt;- &quot;EF&quot;
+extra &lt;- &quot;d1&quot;
+capital_extra &lt;- &quot;D1&quot;
+
+for (year in 2001){
+  try(
+    assign(paste(survey_file, year, extra, sep = &quot;&quot;), 
+           getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra)))
+}
+
+#No &quot;EFFYLEV&quot; value
+
+#Grand Total
+colnames(ef2001d1)[colnames(ef2001d1)==&quot;FYRACE17&quot;] &lt;- &quot;EFYTOTLT&quot;
+ 
+#Total Men
+colnames(ef2001d1)[colnames(ef2001d1)==&quot;FYRACE15&quot;] &lt;- &quot;EFYTOTLM&quot;
+
+#total Hispanic men
+colnames(ef2001d1)[colnames(ef2001d1)==&quot;FYRACE09&quot;] &lt;- &quot;EFYHISPM&quot;
+colnames(ef2001d1)[colnames(ef2001d1)==&quot;FYRACE10&quot;] &lt;- &quot;EFYHISPW&quot;
+
+#total hispanic men and women
+ef2001d1$EFYHISPT &lt;- ef2001d1$EFYHISPW + ef2001d1$EFYHISPM</code></pre>
+<p>We then use the following code to select our variables of interest from each 12-month enrollment table and merge the tables for each year into one large table.</p>
+<pre class="r"><code># List of Data frames
+EFFY &lt;- mget(ls(pattern = &quot;effy|^ef\\d{4}d\\d?$&quot;))
+
+levels(variables$Variable.Name) &lt;- c(levels(variables$Variable.Name),&quot;YEAR&quot;) 
+variables[nrow(variables) + 1,] = list(Table= factor(&quot;EFFY&quot;),Variable.Number= 9999, Variable.Name= factor(&quot;YEAR&quot;))
+EFFY_var &lt;- variables[variables$Table == &quot;EFFY&quot;, 3]
+
+# Merge and and only use the columns in our variable list
+
+EFFY &lt;- lapply(EFFY, function(x) x[(names(x)) %in% EFFY_var])
+EFFY_df &lt;- do.call(&quot;smartbind&quot;, EFFY)</code></pre>
+</div>
+</div>
+<div id="fall-enrollment---raceethnicity-gender-attendance-status-and-level-of-student" class="section level1">
+<h1>Fall Enrollment - Race/ethnicity, gender, attendance status, and level of student</h1>
+<p>We use the loops below to acquire the fall enrollment data (Race/Ethnicty/Gender) from IPEDS for 2000 - 2017. In 2008, the variable names changed from the old system to a new system, so I choose the new naming system. We changed the variable names in the tables prior to 2008 to the corresponding variable name that matches the new system. <em>I have code that can acquire 1980, 1986-1999 if needed.</em></p>
+<pre class="r"><code>survey_file &lt;- &quot;ef&quot;
+capital_survey_file &lt;- &quot;EF&quot;
+extra &lt;- &quot;a&quot;
+capital_extra &lt;- &quot;A&quot;
+
+for (year in 2000:2017){
+  assign(paste(survey_file, year, extra, sep = &quot;&quot;), 
+         getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+
+#fix 2000
+#2000 total men
+colnames(ef2000a)[colnames(ef2000a)==&quot;EFRACE15&quot;] &lt;- &quot;EFTOTLM&quot;
+#2000 total women
+colnames(ef2000a)[colnames(ef2000a)==&quot;EFRACE16&quot;] &lt;- &quot;EFTOTLW&quot;
+#total men and women
+ef2000a$EFTOTLT &lt;- ef2000a$EFTOTLM + ef2000a$EFTOTLW
+
+
+#2000 total Hispanic men
+colnames(ef2000a)[colnames(ef2000a)==&quot;EFRACE09&quot;] &lt;- &quot;EFHISPM&quot;
+colnames(ef2000a)[colnames(ef2000a)==&quot;EFRACE10&quot;] &lt;- &quot;EFHISPW&quot;
+
+#total hispanic men and women
+ef2000a$EFHISPT &lt;- ef2000a$EFHISPW + ef2000a$EFHISPM
+
+
+#fix 2001
+#2001 total men
+colnames(ef2001a)[colnames(ef2001a)==&quot;EFRACE15&quot;] &lt;- &quot;EFTOTLM&quot;
+#2001 total women
+colnames(ef2001a)[colnames(ef2001a)==&quot;EFRACE16&quot;] &lt;- &quot;EFTOTLW&quot;
+#total men and women
+ef2001a$EFTOTLT &lt;- ef2001a$EFTOTLM + ef2001a$EFTOTLW
+
+#2001 total Hispanic 
+colnames(ef2001a)[colnames(ef2001a)==&quot;EFRACE09&quot;] &lt;- &quot;EFHISPM&quot;
+colnames(ef2001a)[colnames(ef2001a)==&quot;EFRACE10&quot;] &lt;- &quot;EFHISPW&quot;
+
+#total hispanic men and women
+ef2001a$EFHISPT &lt;- ef2001a$EFHISPW + ef2001a$EFHISPM
+
+#fix 2002
+#grand total
+colnames(ef2002a)[colnames(ef2002a)==&quot;EFRACE24&quot;] &lt;- &quot;EFTOTLT&quot;
+#total men
+colnames(ef2002a)[colnames(ef2002a)==&quot;EFRACE15&quot;] &lt;- &quot;EFTOTLM&quot;
+# total hispanic men and women
+colnames(ef2002a)[colnames(ef2002a)==&quot;EFRACE21&quot;] &lt;- &quot;EFHISPT&quot;
+
+#fix 2003
+#grand total
+colnames(ef2003a)[colnames(ef2003a)==&quot;EFRACE24&quot;] &lt;- &quot;EFTOTLT&quot;
+#total men
+colnames(ef2003a)[colnames(ef2003a)==&quot;EFRACE15&quot;] &lt;- &quot;EFTOTLM&quot;
+# total hispanic men and women
+colnames(ef2003a)[colnames(ef2003a)==&quot;EFRACE21&quot;] &lt;- &quot;EFHISPT&quot;
+
+#fix 2004
+#grand total
+colnames(ef2004a)[colnames(ef2004a)==&quot;EFRACE24&quot;] &lt;- &quot;EFTOTLT&quot;
+#total men
+colnames(ef2004a)[colnames(ef2004a)==&quot;EFRACE15&quot;] &lt;- &quot;EFTOTLM&quot;
+# total hispanic men and women
+colnames(ef2004a)[colnames(ef2004a)==&quot;EFRACE21&quot;] &lt;- &quot;EFHISPT&quot;
+
+#fix 2005
+#grand total
+colnames(ef2005a)[colnames(ef2005a)==&quot;EFRACE24&quot;] &lt;- &quot;EFTOTLT&quot;
+#total men
+colnames(ef2005a)[colnames(ef2005a)==&quot;EFRACE15&quot;] &lt;- &quot;EFTOTLM&quot;
+# total hispanic men and women
+colnames(ef2005a)[colnames(ef2005a)==&quot;EFRACE21&quot;] &lt;- &quot;EFHISPT&quot;
+
+#fix 2006
+#grand total
+colnames(ef2006a)[colnames(ef2006a)==&quot;EFRACE24&quot;] &lt;- &quot;EFTOTLT&quot;
+#total men
+colnames(ef2006a)[colnames(ef2006a)==&quot;EFRACE15&quot;] &lt;- &quot;EFTOTLM&quot;
+# total hispanic men and women
+colnames(ef2006a)[colnames(ef2006a)==&quot;EFRACE21&quot;] &lt;- &quot;EFHISPT&quot;
+
+#fix 2007
+#grand total
+colnames(ef2007a)[colnames(ef2007a)==&quot;EFRACE24&quot;] &lt;- &quot;EFTOTLT&quot;
+#total men
+colnames(ef2007a)[colnames(ef2007a)==&quot;EFRACE15&quot;] &lt;- &quot;EFTOTLM&quot;
+# total hispanic men and women
+colnames(ef2007a)[colnames(ef2007a)==&quot;EFRACE21&quot;] &lt;- &quot;EFHISPT&quot;</code></pre>
+<p>We then use the following code to select our variables of interest from each fall enrollment(race/ethnicity/gender) table and merge the tables for each year into one large table.</p>
+<pre class="r"><code>#2000-2017 (file is too big)
+EFA &lt;- mget(ls(pattern = c(&quot;^ef\\d{4}a$&quot;)))
+
+levels(variables$Variable.Name) &lt;- c(levels(variables$Variable.Name),&quot;YEAR&quot;) 
+variables[nrow(variables) + 1,] = list(Table= factor(&quot;EF_A&quot;),Variable.Number= 9999, Variable.Name= factor(&quot;YEAR&quot;))
+EFA_var &lt;- variables[variables$Table == &quot;EF_A&quot;, 3]
+
+# Merge and and only use the columns in our variable list
+
+EFA &lt;- lapply(EFA, function(x) x[(names(x)) %in% EFA_var])
+EFA_df &lt;- do.call(&quot;smartbind&quot;, EFA)</code></pre>
+<ul>
+<li>Fall Enrollment - Major field of study, race/ethnicity, gender, attendance status, and level of student</li>
+</ul>
+<p>The code below acquires data for the major field of study enrollment data. The data is available for even years between 2000-2016.</p>
+<p><em>I can easily write code to acquire the data for year before 2000 if needed.</em></p>
+<pre class="r"><code>survey_file &lt;- &quot;ef&quot;
+capital_survey_file &lt;- &quot;EF&quot;
+extra &lt;- &quot;cp&quot;
+capital_extra &lt;- &quot;CP&quot;
+
+for (year in 2000:2016){
+  try(
+  assign(paste(survey_file, year, extra, sep = &quot;&quot;), 
+         getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra)))
+}</code></pre>
+<pre><code>## Error in download.file(paste(&quot;https://nces.ed.gov/ipeds/datacenter/data/&quot;,  : 
+##   cannot open URL 'https://nces.ed.gov/ipeds/datacenter/data/EF2001CP.zip'
+## Error in download.file(paste(&quot;https://nces.ed.gov/ipeds/datacenter/data/&quot;,  : 
+##   cannot open URL 'https://nces.ed.gov/ipeds/datacenter/data/EF2003CP.zip'
+## Error in download.file(paste(&quot;https://nces.ed.gov/ipeds/datacenter/data/&quot;,  : 
+##   cannot open URL 'https://nces.ed.gov/ipeds/datacenter/data/EF2005CP.zip'
+## Error in download.file(paste(&quot;https://nces.ed.gov/ipeds/datacenter/data/&quot;,  : 
+##   cannot open URL 'https://nces.ed.gov/ipeds/datacenter/data/EF2007CP.zip'
+## Error in download.file(paste(&quot;https://nces.ed.gov/ipeds/datacenter/data/&quot;,  : 
+##   cannot open URL 'https://nces.ed.gov/ipeds/datacenter/data/EF2009CP.zip'
+## Error in download.file(paste(&quot;https://nces.ed.gov/ipeds/datacenter/data/&quot;,  : 
+##   cannot open URL 'https://nces.ed.gov/ipeds/datacenter/data/EF2011CP.zip'
+## Error in download.file(paste(&quot;https://nces.ed.gov/ipeds/datacenter/data/&quot;,  : 
+##   cannot open URL 'https://nces.ed.gov/ipeds/datacenter/data/EF2013CP.zip'
+## Error in download.file(paste(&quot;https://nces.ed.gov/ipeds/datacenter/data/&quot;,  : 
+##   cannot open URL 'https://nces.ed.gov/ipeds/datacenter/data/EF2015CP.zip'</code></pre>
+<pre class="r"><code>#2006 
+#Grand total
+colnames(ef2006cp)[colnames(ef2006cp)==&quot;EFRACE24&quot;] &lt;- &quot;EFTOTLT&quot;
+
+# total men
+colnames(ef2006cp)[colnames(ef2006cp)==&quot;EFRACE15&quot;] &lt;- &quot;EFTOTLM&quot;
+
+# total hispanic
+colnames(ef2006cp)[colnames(ef2006cp)==&quot;EFRACE21&quot;] &lt;- &quot;EFHISPT&quot;
+
+#2004 
+#Grand total
+
+colnames(ef2004cp)[colnames(ef2004cp) == &quot;EFRACE24&quot;] &lt;- &quot;EFTOTLT&quot;
+
+#total men
+
+colnames(ef2004cp)[colnames(ef2004cp) == &quot;EFRACE15&quot;] &lt;- &quot;EFTOTLM&quot;
+
+#total hispanic
+
+colnames(ef2004cp)[colnames(ef2004cp)==&quot;EFRACE21&quot;] &lt;- &quot;EFHISPT&quot;
+
+#2002
+colnames(ef2002cp)[colnames(ef2002cp) == &quot;EFRACE24&quot;] &lt;- &quot;EFTOTLT&quot;
+
+#total men
+
+colnames(ef2002cp)[colnames(ef2002cp) == &quot;EFRACE15&quot;] &lt;- &quot;EFTOTLM&quot;
+
+#total hispanic
+
+colnames(ef2002cp)[colnames(ef2002cp)==&quot;EFRACE21&quot;] &lt;- &quot;EFHISPT&quot;
+
+#2000
+
+#2000 Total Men
+colnames(ef2000cp)[colnames(ef2000cp)==&quot;EFRACE15&quot;] &lt;- &quot;EFTOTLM&quot;
+#2000 Total Women
+colnames(ef2000cp)[colnames(ef2000cp)==&quot;EFRACE16&quot;] &lt;- &quot;EFTOTLW&quot;
+#total men and women
+ef2000cp$EFTOTLT &lt;- ef2000cp$EFTOTLM + ef2000cp$EFTOTLW
+
+#2001 total Hispanic 
+colnames(ef2000cp)[colnames(ef2000cp)==&quot;EFRACE09&quot;] &lt;- &quot;EFHISPM&quot;
+colnames(ef2000cp)[colnames(ef2000cp)==&quot;EFRACE10&quot;] &lt;- &quot;EFHISPW&quot;
+
+#total hispanic men and women
+ef2000cp$EFHISPT &lt;- ef2000cp$EFHISPW + ef2000cp$EFHISPM</code></pre>
+</div>
+<div id="institutional-characteristics---educational-offerings-organization-services-and-athletic-associations" class="section level1">
+<h1>Institutional Characteristics - Educational offerings, organization, services and athletic associations</h1>
+<p>The code below acquires the institutional characteristics variables of interest, specifically religious affiliation for 2000-2017. <em>The data is available from 1980 if needed - I can easily write code to include earlier years if needed</em>.</p>
+<pre class="r"><code>survey_file &lt;- &quot;ic&quot;
+capital_survey_file &lt;- &quot;IC&quot;
+extra &lt;- &quot;&quot;
+capital_extra &lt;- &quot;&quot;
+
+#2000-2012. Available from 1980
+for (year in 2000:2017){
+    assign(paste(survey_file, year, extra, sep = &quot;&quot;), 
+           getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}</code></pre>
+<p>Then, we made one big data frame.</p>
+<pre class="r"><code>IC &lt;- mget(ls(pattern = &quot;^ic\\d{4}$&quot;))
+
+levels(variables$Variable.Name) &lt;- c(levels(variables$Variable.Name),&quot;YEAR&quot;) 
+variables[nrow(variables) + 1,] = list(Table= factor(&quot;IC&quot;),Variable.Number= 9999, Variable.Name= factor(&quot;YEAR&quot;))
+IC_var &lt;- variables[variables$Table == &quot;IC&quot;, 3]
+
+# Merge and and only use the columns in our variable list
+IC &lt;- lapply(IC, function(x) x[(names(x)) %in% IC_var])
+IC_df &lt;- do.call(&quot;smartbind&quot;, IC)</code></pre>
 </div>
 
 
