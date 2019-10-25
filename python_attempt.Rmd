@@ -38,7 +38,7 @@ import re
 
 response = requests.get('http://www.bishop-accountability.org/AtAGlance/USCCB_Yearly_Data_on_Accused_Priests.htm')
 
-accused=re.findall(r'important;">(.*?)</td>',response.text)
+accused=re.findall(r'color="#CC0000">(.*?)</font></p>',response.text)
 print(len(dioceses))
 
 <font color="#CC0000">387</font>
