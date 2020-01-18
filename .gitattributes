@@ -1,3 +1,4 @@
-*.shp filter=lfs diff=lfs merge=lfs -text
-*.csv filter=lfs diff=lfs merge=lfs -text
-*.txt filter=lfs diff=lfs merge=lfs -text
+*tl_2017_us_county.shp filter=lfs diff=lfs merge=lfs -text
+*ipeds-socio-geo.csv filter=lfs diff=lfs merge=lfs -text
+*old-data.csv filter=lfs diff=lfs merge=lfs -text
+*hispanic_pop.txt filter=lfs diff=lfs merge=lfs -text
