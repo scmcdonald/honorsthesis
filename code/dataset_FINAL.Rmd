@@ -901,8 +901,7 @@ his$Origin[his$Origin=="0"] <- "Non-Hispanic"
 #detach(package:plyr)    
 
 #counts of population for year, state, fips, origin, and hispanic/nonhispanic
-his <- his %>% group_by(Year, FIPS, Origin) %>%
-  summarize(Population= sum(Population))
+his <- his %>% group_by(Year, FIPS, Origin) %>% summarize(Population= sum(Population))
 
 #hispanic and nonhispanic columns
 his <- his %>% spread(key = Origin, value = Population)
@@ -1140,6 +1139,7 @@ NEED CATHOLIC DATA
 
 ```{r}
 library(rvest)
+#test Albany
 url <- paste("http://www.catholic-hierarchy.org/diocese/", "d", "albn", ".html", sep="")
 webpage <- read_html(url)
 
@@ -1158,8 +1158,9 @@ dioceses  <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulate
 dioceses$abbr <- tolower(substr(dioceses$x, 1, 4))
 
 
+# had to hand fix abbreviations that were causing errors
 
-
+dioceses[dioceses$x == "Albany", "abbr"] <- "albn" 
 
 dioceses[dioceses$x == "Los Angeles", "abbr"] <- "losa" 
 dioceses[dioceses$x == "Des Moines", "abbr"] <- "desm" 
@@ -1209,8 +1210,10 @@ for(i in 1:length(dioceses$abbr)){
   
 }
 
+#check for any dioceses not in our dioceses$abbr list
 dioceses %>% select(abbr) %>% filter(!(abbr %in% names(list)) == TRUE)
 
+#find dioceses for which Year and Percent Catholic are not varibles
 
 issues <- c()
 for(i in 1:length(list)) {
@@ -1225,10 +1228,10 @@ for(i in 1:length(list)) {
   
 }
 
-
+#remove issues (we will find them and bind them back)
 list <- within(list, rm(anch, wino, kcks, bato))
-#anchorage
 
+#anchorage - did not work in the first loop because it is table 4 not table 3
 url <-  paste("http://www.catholic-hierarchy.org/diocese/", "d", "anch", ".html", sep="")
 webpage <- read_html(url)
 
@@ -1237,7 +1240,7 @@ webpage <- read_html(url)
     .[4] %>%
     html_table(fill = TRUE)
 
-#kansas city KS
+#kansas city KS - did not work in the first loop because it is table 4 not table 3
 url <-  paste("http://www.catholic-hierarchy.org/diocese/", "d", "kcks", ".html", sep="")
 webpage <- read_html(url)
 
@@ -1246,7 +1249,7 @@ kcks <-webpage %>%
   .[4] %>%
   html_table(fill = TRUE)
 
-#Baton Rouge
+#Baton Rouge - did not work in the first loop because it is table 4 not table 3
 url <-  paste("http://www.catholic-hierarchy.org/diocese/", "d", "bato", ".html", sep="")
 webpage <- read_html(url)
 
@@ -1256,17 +1259,20 @@ bato <-webpage %>%
   html_table(fill = TRUE)
 
 
-#WINONA does not have data due to recent merge to WINONA ROCHESTER
+#WINONA does not have data due to recent merge to WINONA ROCHESTER 
 
 
-
+#assign Dioceses name column , selct year, percent catholic, and dioceses
 for(i in 1:length(list)) {
   list[i][[1]]$Dioceses <- names(list[i])
   list[i][[1]] <- list[i][[1]] %>% select("Year", "Percent Catholic", "Dioceses")
   
 }
 
+#make data frame
 list <- do.call("smartbind", list)
+
+#merge anch, bato, kcks
 
 anch[[1]]$Dioceses <- "anch"
 bato[[1]]$Dioceses <- "bato"
@@ -1289,26 +1295,34 @@ list <- smartbind(list, anch, bato, kcks)
 
 
 
-#removes blank values and where the name was printed in cell instead of year
+#removes blank values and where the name was printed in cell instead of year - some of the dioceses name changes specifed in the tables themselves (example, look at MOBILE) 
 list <- list %>% filter(nchar(Year)==4)
+
+#convert percents to numeric
 list$`Percent Catholic` <- gsub("%", "", list$`Percent Catholic`)
 list$`Percent Catholic` <- as.numeric(list$`Percent Catholic`)
 
+# remove percent catholic NA values (most are out of scope, but not a complete data point)
 list <- list %>% filter(is.na(`Percent Catholic`)==FALSE)
 
 
-#zeros are missing values
+#zeros are missing values as well (look at Richmond)
 list <-list %>% filter(`Percent Catholic` != 0)
+
+#interpolation: test for birmingham (birm)
 
 list$Year <- as.numeric(list$Year)
 
 i <- unique(list$Dioceses)[1]
 tbl_i <- list %>% filter( list$Dioceses== i)
 
-app_i <- approx(tbl_i$Year, tbl_i$`Percent Catholic`, xout= 1990:2017,method = "linear")
+#approx assumes linear relationship, and fills in values for years between 1990-2017 based on complete observations.
+#rule  indicates  how interpolation is to take place outside the interval [min(x), max(x)]. If rule is 1 then NAs are returned for such points and if it is 2, the value at the closest data extreme is used.For example, if the last data point is in 2016, and 2017 is missing, rather than returning an NA for 2017, 2017 takes on the value for 2016.
+
+app_i <- approx(tbl_i$Year, tbl_i$`Percent Catholic`, xout= 1990:2017,method = "linear", rule = 2)
 
 
-
+#run for all dioceses
 catholic <- data.frame("Year"=numeric(0), "Percent Catholic"=numeric(0), "Dioceses"=numeric(0))
 
 for( i in 1:length(unique(list$Dioceses))){
@@ -1322,17 +1336,17 @@ for( i in 1:length(unique(list$Dioceses))){
   catholic <- rbind(catholic, app_i)
 }
 
-#rule ==an integer describing how interpolation is to take place outside the interval [min(x), max(x)]. If rule is 1 then NAs are returned for such points and if it is 2, the value at the closest data extreme is used.
+
 
 catholic <- merge(catholic, dioceses[, c("x", "abbr")], by.x="Dioceses", by.y = "abbr")
 catholic <- catholic %>% select("Year", "Percent Catholic", "x")
 colnames(catholic)[colnames(catholic)=="x"] <- "Dioceses"
 
-#the winona dicoses is the only one missing
 
+ # merge
 data <- merge(data, catholic, by.x = c("YEAR", "Dioceses"), by.y = c("Year", "Dioceses"), all.x = TRUE)
 cath.na <- data %>% filter(is.na(`Percent Catholic`)==TRUE) %>% select(Dioceses) %>% group_by(Dioceses)
-unique(cath.na)
+unique(cath.na) #the winona dicoses is the only one missing
 
 ```
 
@@ -1403,6 +1417,10 @@ tbl <-tbl[!apply(tbl == "", 1, all),]
 
 #hand classify these
 tbl1 <- tbl %>% filter(str_detect(tbl$Notes, "died|retired"))
+
+#write.csv(tbl1, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/extra_credit.csv", col.names = TRUE)
+
+
 
 # code classify these
 tbl2 <- tbl %>% filter(str_detect(tbl$Notes, "died|retired", negate = TRUE))
@@ -1490,52 +1508,7 @@ dioceses_bishop<- gsub("Springfield IL", "Springfield in Illinois", dioceses_bis
 
 
 
-DC Schools
-https://opendata.dc.gov/datasets/7241f6d500b44288ad983f0942b39663_10/data
-```{r}
 
-dc <- st_read("C:/Users/Sarah McDonald/Documents/honorsthesis/KML/Washington_DC_Boundary.kml")
-dc = st_transform(dc, st_crs(cath_geo))
-
-dataNA <- data %>% filter(is.na(Dioceses) == TRUE)
-coords_NA <- dataNA %>% filter(YEAR == 2017 & LINE == "Total") %>% select(UNITID, LONGITUD, LATITUDE)
-
-coords_NA = st_as_sf(coords_NA, coords = c("LONGITUD", "LATITUDE"), crs = st_crs(cath_geo))
-
-
-dcUNITIDs <- st_join(dc, coords_NA)
-
-dcIDs <- dcUNITIDs$UNITID
-
-
-levels(data$Dioceses) <- c(levels(data$Dioceses),"Washington DC")
-
-data$Dioceses[data$UNITID %in% dcIDs] <- "Washington DC"
-
-dataNA <- data %>% filter(is.na(Dioceses) == TRUE) #many of the NAs are technical schools
-
-data$Dioceses[data$INSTNM %like% "HAWAII"] <- "Honolulu"
-
-dataNA <- data %>% filter(is.na(Dioceses) == TRUE) #many of the NAs are technical schools
-
-#filter out american samoa
-data<-data %>% filter(!(INSTNM %like% "SAMOA"))
-
-data<-data %>% filter(!(INSTNM %like% "PUERTO RICO"))
-
-data<-data %>% filter(!(INSTNM %like% "GUAM"))
-
-data<-data %>% filter(!(INSTNM %like% "MARSHALL ISLANDS"))
-
-#I can connect universities straight to dioceses without going through counties
-
-na <- st_join(cath_geo, coords_NA)
-
-other <- st_join(cath_geo, coords_17)
-
-```
-
-https://www.huduser.gov/portal/datasets/usps_crosswalk.html zip code to county cross walk
 
 
 
