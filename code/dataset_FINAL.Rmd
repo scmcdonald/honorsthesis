@@ -1418,6 +1418,7 @@ tbl <-tbl[!apply(tbl == "", 1, all),]
 #hand classify these
 tbl1 <- tbl %>% filter(str_detect(tbl$Notes, "died|retired"))
 
+#write off entries that have "died or retired" in notes
 #write.csv(tbl1, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/extra_credit.csv", col.names = TRUE)
 
 
@@ -1441,26 +1442,34 @@ for (i in 1: length(tbl2$Source)){
   
   tbl2$public[i] <- y
 }
+
+tbl1 <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/extra_credit_updated.csv")
+
 tbl2$public <- as.numeric(tbl2$public)
-tbl2 <- separate(tbl2, col = "Diocese", into = c("Diocese", "State"), sep = ",")
 
-tbl2$ID <- as.character(seq.int(nrow(tbl2)))
+tbl2 <- tbl2 %>% select("Diocese", "public")
+tbl1 <- tbl1 %>% select("Diocese", "public")
+tbl <- rbind(tbl1, tbl2)
 
-duplicates <- tbl2 %>% filter(Diocese == "Springfield" | Diocese== "Portland" | Diocese == "Lafayette")
+tbl <- separate(tbl, col = "Diocese", into = c("Diocese", "State"), sep = ",")
+
+tbl$ID <- as.character(seq.int(nrow(tbl)))
+
+duplicates <- tbl %>% filter(Diocese == "Springfield" | Diocese== "Portland" | Diocese == "Lafayette")
 
 duplicates <- unite(duplicates,  Diocese, c(Diocese, State), sep = "", remove=FALSE)
 
-tbl2 <- tbl2 %>% filter(Diocese !=  "Springfield" & Diocese != "Lafayette"& Diocese !="Portland")
+tbl <- tbl %>% filter(Diocese !=  "Springfield" & Diocese != "Lafayette"& Diocese !="Portland")
 
-tbl2 <- rbind(tbl2, duplicates)
+tbl <- rbind(tbl, duplicates)
 
 
 
-bishop_pub <-tbl2 %>% group_by(Diocese, public) %>% tally()
+bishop_pub <-tbl %>% group_by(Diocese, public) %>% tally()
 colnames(bishop_pub)[colnames(bishop_pub)=="n"] <- "bishop_pub"
 
 dioceses_bishop <- unique(bishop_pub$Diocese)
-data <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/ipeds-socio-geo.csv")
+#data <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/ipeds-socio-geo.csv")
 
 dioceses_data <- unique(data$Dioceses)
 dioceses_data <- as.character(as.factor(dioceses_data))
@@ -1468,7 +1477,7 @@ dioceses_data <- as.character(as.factor(dioceses_data))
 subset(dioceses_bishop, !(dioceses_bishop %in% dioceses_data))
 subset(dioceses_data, !(dioceses_data %in% dioceses_bishop))
 
-
+bishop_pub$Diocese[bishop_pub$Diocese=="Washington DC"] <- "Washington"
 bishop_pub$Diocese[bishop_pub$Diocese=="Fort Wayne-South Bend"] <- "Fort Wayne - South Bend"
 bishop_pub$Diocese[bishop_pub$Diocese=="Kansas City"] <- "Kansas City KS"
 bishop_pub$Diocese[bishop_pub$Diocese=="St. Paul-Minneapolis"] <- "St. Paul &amp; Minneapolis"
@@ -1486,23 +1495,31 @@ bishop_pub$Diocese[bishop_pub$Diocese=="Springfield IL"] <- "Springfield in Illi
 
 
 
-dioceses_bishop <- gsub("Fort Wayne-South Bend", "Fort Wayne - South Bend", dioceses_bishop)
-dioceses_bishop <- gsub("Kansas City", "Kansas City KS", dioceses_bishop)
-dioceses_bishop<- gsub("St. Paul-Minneapolis", "St. Paul &amp; Minneapolis", dioceses_bishop)
-dioceses_bishop<- gsub("Kansas City KS-St. Joseph", "Kansas City-St. Joseph", dioceses_bishop)
+#dioceses_bishop <- gsub("Fort Wayne-South Bend", "Fort Wayne - South Bend", dioceses_bishop)
+#dioceses_bishop <- gsub("Kansas City", "Kansas City KS", dioceses_bishop)
+#dioceses_bishop<- gsub("St. Paul-Minneapolis", "St. Paul &amp; Minneapolis", dioceses_bishop)
+#dioceses_bishop<- gsub("Kansas City KS-St. Joseph", "Kansas City-St. Joseph", dioceses_bishop)
 
 
-dioceses_bishop<- gsub("Lafayette IN", "Lafayette in Indiana", dioceses_bishop)
-dioceses_bishop<- gsub("Lafayette LA", "Lafayette in Louisiana", dioceses_bishop)
-dioceses_bishop<- gsub("Portland ME", "Portland in Maine", dioceses_bishop)
-dioceses_bishop<- gsub("Portland OR", "Portland in Oregon", dioceses_bishop)
-dioceses_bishop<- gsub("Springfield MA", "Springfield in Massachusetts", dioceses_bishop)
-dioceses_bishop<- gsub("Springfield IL", "Springfield in Illinois", dioceses_bishop)
-
-#data does not classify DC Schools Dioceses
-#will need to specify springfield (IL or MA), Lafayette (IN, Lousiana), Portland (OR, MAINE)
+#dioceses_bishop<- gsub("Lafayette IN", "Lafayette in Indiana", dioceses_bishop)
+#dioceses_bishop<- gsub("Lafayette LA", "Lafayette in Louisiana", dioceses_bishop)
+#dioceses_bishop<- gsub("Portland ME", "Portland in Maine", dioceses_bishop)
+#dioceses_bishop<- gsub("Portland OR", "Portland in Oregon", dioceses_bishop)
+#dioceses_bishop<- gsub("Springfield MA", "Springfield in Massachusetts", dioceses_bishop)
+#dioceses_bishop<- gsub("Springfield IL", "Springfield in Illinois", dioceses_bishop)
+data <- merge(data, bishop_pub, by.x = c("YEAR", "Dioceses"),by.y =c("public", "Diocese"), all.x = TRUE)
 
 
+# if bishop accountability merged as NA, we assume this equals to 0 because no priest was reported for the year and dioceses
+data$bishop_pub[is.na(data$bishop_pub) == TRUE] <- 0
+
+```
+
+
+```{r}
+#write.csv(data, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/data_bishop_account.csv", row.names = FALSE)
+
+data <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/data_bishop_account.csv")
 ```
 
 
@@ -1511,8 +1528,5 @@ dioceses_bishop<- gsub("Springfield IL", "Springfield in Illinois", dioceses_bis
 
 
 
-
-
-ADD NEGATIVE PUBLICITY
 
 
