@@ -1,0 +1,22 @@
+---
+title: "model-building"
+author: "Sarah McDonald"
+date: "February 1, 2020"
+output: html_document
+---
+
+```{r}
+data <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_inst.csv")
+
+data_one <- data[data$YEAR != 1990, ]
+
+data_two <- data[data$YEAR!= 1990 & data$YEAR != 1991, ]
+
+
+linearMod <- lm(EFTOTLT_change ~ bishop_pub + Percent.Catholic + his_prop, data=data_one[data_one$LINE == "Total", ]) 
+summary(linearMod)
+
+
+
+```
+
