@@ -1490,7 +1490,7 @@ bishop_pub$Diocese[bishop_pub$Diocese=="Portland OR"] <- "Portland in Oregon"
 bishop_pub$Diocese[bishop_pub$Diocese=="Springfield MA"] <- "Springfield in Massachusetts"
 bishop_pub$Diocese[bishop_pub$Diocese=="Springfield IL"] <- "Springfield in Illinois"
 
-
+#write.csv(bishop_pub, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/bishop_pub.csv", row.names = FALSE)
 
 
 
@@ -1523,8 +1523,14 @@ data <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_dat
 ```
 
 
+Now we need Catholic Insitutions only
 
+```{r}
+cath_inst <- data %>% filter(RELAFFIL == "Roman Catholic")
 
+#write.csv(cath_inst, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_inst.csv")
+
+```
 
 
 
