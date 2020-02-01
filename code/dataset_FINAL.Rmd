@@ -1520,18 +1520,340 @@ data$bishop_pub[is.na(data$bishop_pub) == TRUE] <- 0
 #write.csv(data, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/data_bishop_account.csv", row.names = FALSE)
 
 data <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/data_bishop_account.csv")
+#some schools were coded is no affiliation in 1990 but catholic in 2017,so this is how we identify catholic schools
+
+#Now we need Catholic Insitutions only
+
+cath_unitids <- data[data$RELAFFIL == "Roman Catholic", "UNITID" ]
+
+cath_inst <- data %>% filter(UNITID %in% cath_unitids)
+
+cath_inst %>% group_by(YEAR) %>% summarise(n = n())
+
+
+
+
+
+
+
 ```
 
 
-Now we need Catholic Insitutions only
+# Percent Change TOTAL Enrollment
+```{r}
+
+cath_inst<- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_inst.csv")
+
+cath_inst$EFTOTLT_change <- 0
+
+for(k in 2:length(unique(cath_inst$YEAR))){ 
+  
+  k <- unique(cath_inst$YEAR)[k]
+
+  for (j in 1:length(unique(cath_inst$LINE))){
+    
+    j <- unique(cath_inst$LINE)[j]
+
+    for (i in 1:length(unique(cath_inst$UNITID))){
+      
+      i <- unique(cath_inst$UNITID)[i]
+   
+      
+      
+  # if 2016 == 0     
+if (cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "EFTOTLT"] == 0){
+  
+  #and 2017 ==0, then percent change = 0
+  if(cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLT"] == 0){
+    
+    cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLT_change"] <- 0
+    
+    # and 2017 = n, then percent change = 100 (so that we do not have major outliers)
+  } else {
+    cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLT_change"] <- 100
+ 
+  }
+  
+  #else, use typical percent chaneg function
+} else {
+  
+       m <- ((cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLT"] -  cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "EFTOTLT"])
+   /cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "EFTOTLT"])*100
+  
+  cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLT_change"] <- m
+  
+      }
+    }
+  }
+} 
+
+cath_inst[cath_inst$YEAR == 1990, "EFTOTLT_change"] <- NA
+
+
+############## TWO YEAR CHANGE
+
+
+cath_inst$EFTOTLT_change_2 <-0
+
+for(k in 3:length(unique(cath_inst$YEAR))){ 
+  
+  k <- unique(cath_inst$YEAR)[k]
+
+  for (j in 1:length(unique(cath_inst$LINE))){
+    
+    j <- unique(cath_inst$LINE)[j]
+
+    for (i in 1:length(unique(cath_inst$UNITID))){
+      
+      i <- unique(cath_inst$UNITID)[i]
+   
+      
+      
+  # if 2016 == 0     
+if (cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "EFTOTLT"] == 0){
+  
+  #and 2017 ==0, then percent change = 0
+  if(cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLT"] == 0){
+    
+    cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLT_change_2"] <- 0
+    
+    # and 2017 = n, then percent change = 100 (so that we do not have major outliers)
+  } else {
+    cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLT_change_2"] <- 100
+ 
+  }
+  
+  #else, use typical percent chaneg function
+} else {
+  
+       m <- ((cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLT"] -  cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "EFTOTLT"])
+   /cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "EFTOTLT"])*100
+  
+  cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLT_change_2"] <- m
+  
+      }
+    }
+  }
+} 
+
+cath_inst[cath_inst$YEAR == 1990 | cath_inst$YEAR == 1991, "EFTOTLT_change_2"] <- NA
+
+
+```
+  
+
+# PERCENT CHANGE MALE ENROLLMENT
+```{r}
+
+
+cath_inst$EFTOTLM_change <- 0
+
+for(k in 2:length(unique(cath_inst$YEAR))){ 
+  
+  k <- unique(cath_inst$YEAR)[k]
+
+  for (j in 1:length(unique(cath_inst$LINE))){
+    
+    j <- unique(cath_inst$LINE)[j]
+
+    for (i in 1:length(unique(cath_inst$UNITID))){
+      
+      i <- unique(cath_inst$UNITID)[i]
+   
+      
+      
+  # if 2016 == 0     
+if (cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "EFTOTLM"] == 0){
+  
+  #and 2017 ==0, then percent change = 0
+  if(cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLM"] == 0){
+    
+    cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLM_change"] <- 0
+    
+    # and 2017 = n, then percent change = 100 (so that we do not have major outliers)
+  } else {
+    cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLM_change"] <- 100
+ 
+  }
+  
+  #else, use typical percent chaneg function
+} else {
+  
+       m <- ((cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLM"] -  cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "EFTOTLM"])
+   /cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "EFTOTLM"])*100
+  
+  cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLM_change"] <- m
+  
+      }
+    }
+  }
+} 
+
+cath_inst[cath_inst$YEAR == 1990, "EFTOTLM_change"] <- NA
+
+
+############## TWO YEAR CHANGE
+
+
+cath_inst$EFTOTLM_change_2 <-0
+
+for(k in 3:length(unique(cath_inst$YEAR))){ 
+  
+  k <- unique(cath_inst$YEAR)[k]
+
+  for (j in 1:length(unique(cath_inst$LINE))){
+    
+    j <- unique(cath_inst$LINE)[j]
+
+    for (i in 1:length(unique(cath_inst$UNITID))){
+      
+      i <- unique(cath_inst$UNITID)[i]
+   
+      
+      
+  # if 2016 == 0     
+if (cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "EFTOTLM"] == 0){
+  
+  #and 2017 ==0, then percent change = 0
+  if(cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLM"] == 0){
+    
+    cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLM_change_2"] <- 0
+    
+    # and 2017 = n, then percent change = 100 (so that we do not have major outliers)
+  } else {
+    cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLM_change_2"] <- 100
+ 
+  }
+  
+  #else, use typical percent chaneg function
+} else {
+  
+       m <- ((cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLM"] -  cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "EFTOTLM"])
+   /cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "EFTOTLM"])*100
+  
+  cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLM_change_2"] <- m
+  
+      }
+    }
+  }
+} 
+
+cath_inst[cath_inst$YEAR == 1990 | cath_inst$YEAR == 1991, "EFTOTLM_change_2"] <- NA
+
+
+```
+
+
+# Percent Change HISPANIC
+```{r}
+
+
+cath_inst$EFHISPT_change <- 0
+
+for(k in 2:length(unique(cath_inst$YEAR))){ 
+  
+  k <- unique(cath_inst$YEAR)[k]
+
+  for (j in 1:length(unique(cath_inst$LINE))){
+    
+    j <- unique(cath_inst$LINE)[j]
+
+    for (i in 1:length(unique(cath_inst$UNITID))){
+      
+      i <- unique(cath_inst$UNITID)[i]
+   
+      
+      
+  # if 2016 == 0     
+if (cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "EFHISPT"] == 0){
+  
+  #and 2017 ==0, then percent change = 0
+  if(cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFHISPT"] == 0){
+    
+    cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFHISPT_change"] <- 0
+    
+    # and 2017 = n, then percent change = 100 (so that we do not have major outliers)
+  } else {
+    cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFHISPT_change"] <- 100
+ 
+  }
+  
+  #else, use typical percent chaneg function
+} else {
+  
+       m <- ((cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFHISPT"] -  cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "EFHISPT"])
+   /cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "EFHISPT"])*100
+  
+  cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFHISPT_change"] <- m
+  
+      }
+    }
+  }
+} 
+
+cath_inst[cath_inst$YEAR == 1990, "EFHISPT_change"] <- NA
+
+
+############## TWO YEAR CHANGE
+
+
+cath_inst$EFHISPT_change_2 <-0
+
+for(k in 3:length(unique(cath_inst$YEAR))){ 
+  
+  k <- unique(cath_inst$YEAR)[k]
+
+  for (j in 1:length(unique(cath_inst$LINE))){
+    
+    j <- unique(cath_inst$LINE)[j]
+
+    for (i in 1:length(unique(cath_inst$UNITID))){
+      
+      i <- unique(cath_inst$UNITID)[i]
+   
+      
+      
+  # if 2016 == 0     
+if (cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "EFHISPT"] == 0){
+  
+  #and 2017 ==0, then percent change = 0
+  if(cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFHISPT"] == 0){
+    
+    cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFHISPT_change_2"] <- 0
+    
+    # and 2017 = n, then percent change = 100 (so that we do not have major outliers)
+  } else {
+    cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFHISPT_change_2"] <- 100
+ 
+  }
+  
+  #else, use typical percent chaneg function
+} else {
+  
+       m <- ((cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFHISPT"] -  cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "EFHISPT"])
+   /cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "EFHISPT"])*100
+  
+  cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFHISPT_change_2"] <- m
+  
+      }
+    }
+  }
+} 
+
+cath_inst[cath_inst$YEAR == 1990 | cath_inst$YEAR == 1991, "EFHISPT_change_2"] <- NA
+
+
+```
+
 
 ```{r}
-cath_inst <- data %>% filter(RELAFFIL == "Roman Catholic")
 
-#write.csv(cath_inst, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_inst.csv")
+
+
+
+#write.csv(cath_inst, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_inst.csv", row.names = FALSE)
 
 ```
-
 
 
 
