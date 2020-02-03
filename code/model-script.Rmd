@@ -8,15 +8,29 @@ output: html_document
 ```{r}
 data <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_inst.csv")
 
-data_one <- data[data$YEAR != 1990, ]
+#remove 1990 and 1991
+data <- data[data$YEAR!= 1990 & data$YEAR != 1991 & data$YEAR != 1992, ]
 
-data_two <- data[data$YEAR!= 1990 & data$YEAR != 1991, ]
+```
 
+### TOTAL ENROLLMENT
+```{r}
+enroll_total <- lm(log(EFTOTLT+0.001) ~   log(bishop_pub_sum_3+0.001) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Total", ]) 
 
-linearMod <- lm(EFTOTLT_change ~ bishop_pub + Percent.Catholic + his_prop, data=data_one[data_one$LINE == "Total", ]) 
-summary(linearMod)
+summary(enroll_total)
+```
 
+### GRADUATE ENROLLMENT
+```{r}
+enroll_grad <- lm(log(EFTOTLT+0.001) ~   log(bishop_pub_sum_3+0.001) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Graduate", ]) 
 
+summary(enroll_grad)
+```
 
+### UNDERGRADUATE ENROLLMENT
+```{r}
+enroll_undergrad <- lm(log(EFTOTLT +0.000000001) ~  log(bishop_pub_sum_3+0.000000001)   + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
+
+summary(enroll_undergrad)
 ```
 

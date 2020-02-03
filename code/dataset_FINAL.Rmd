@@ -1551,6 +1551,7 @@ cath_inst$EFTOTLM_2 <- 0
 cath_inst$EFHISPT_2 <- 0
 cath_inst$bishop_pub_2 <- 0
 
+cath_inst$bishop_pub_3 <- 0
 for(k in 2:length(unique(cath_inst$YEAR))){ 
   
   k <- unique(cath_inst$YEAR)[k]
@@ -1611,7 +1612,26 @@ for(l in 3:length(unique(cath_inst$YEAR))){
     }
   } 
 
+for(m in 4:length(unique(cath_inst$YEAR))){ 
+  
+  m <- unique(cath_inst$YEAR)[m]
+    
+    for (j in 1:length(unique(cath_inst$LINE))){
+    
+      j <- unique(cath_inst$LINE)[j]
 
+      for (i in 1:length(unique(cath_inst$UNITID))){
+      
+        i <- unique(cath_inst$UNITID)[i]
+
+ 
+   cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == m, "bishop_pub_3"] <-
+      cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == m-3, "bishop_pub"]
+  
+  
+      }
+    }
+  } 
 
 
 
@@ -1629,7 +1649,9 @@ cath_inst[cath_inst$YEAR == 1990 | cath_inst$YEAR == 1991, "EFTOTLT_2"] <- NA
 cath_inst[cath_inst$YEAR == 1990 | cath_inst$YEAR == 1991, "EFTOTLM_2"] <- NA
 cath_inst[cath_inst$YEAR == 1990 | cath_inst$YEAR == 1991, "EFHISPT_2"] <- NA
 cath_inst[cath_inst$YEAR == 1990 | cath_inst$YEAR == 1991, "bishop_pub_2"] <- NA
+cath_inst[cath_inst$YEAR == 1990 | cath_inst$YEAR == 1991 | cath_inst$YEAR == 1992, "bishop_pub_3"] <- NA
 
+cath_inst$bishop_pub_sum_3 <- cath_inst$bishop_pub_1 + cath_inst$bishop_pub_2 + cath_inst$bishop_pub_3
 
 
 ```
@@ -1639,7 +1661,7 @@ cath_inst[cath_inst$YEAR == 1990 | cath_inst$YEAR == 1991, "bishop_pub_2"] <- NA
 
 
 ```{r}
-write.csv(cath_inst, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_inst.csv", row.names = FALSE)
+#write.csv(cath_inst, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_inst.csv", row.names = FALSE)
 
 ```
 
