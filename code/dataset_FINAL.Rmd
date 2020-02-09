@@ -1666,5 +1666,31 @@ cath_inst$bishop_pub_sum_3 <- cath_inst$bishop_pub_1 + cath_inst$bishop_pub_2 + 
 ```
 
 
+```{r}
+arch <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/raw_data/archdioceses-nexus.csv", header = FALSE)
+dioceses<- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/raw_data/dioceses-nexus.csv", header = FALSE)
+
+
+arch <- arch %>% select(V2, V3)
+
+colnames(arch)[colnames(arch)== "V2" ] <- "dioceses"
+colnames(arch)[colnames(arch)== "V3" ] <- "nexus"
+
+dioceses <- dioceses %>% select(V1, V2)
+
+colnames(dioceses)[colnames(dioceses)== "V1" ] <- "dioceses"
+colnames(dioceses)[colnames(dioceses)== "V2" ] <- "nexus"
+
+
+nexus <- rbind(arch, dioceses)
+
+nexus$dioceses <- as.character(nexus$dioceses)
+
+
+nexus <- nexus %>% separate(dioceses,c("dioceses", "year"),  sep = "_")
+
+#write.csv(nexus, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/nexus.csv")
+
+```
 
 
