@@ -1660,11 +1660,6 @@ cath_inst$bishop_pub_sum_3 <- cath_inst$bishop_pub_1 + cath_inst$bishop_pub_2 + 
 
 
 
-```{r}
-#write.csv(cath_inst, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_inst.csv", row.names = FALSE)
-
-```
-
 
 ```{r}
 arch <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/raw_data/archdioceses-nexus.csv", header = FALSE)
@@ -1713,12 +1708,95 @@ not_in_cath <- cath_inst %>% select(Dioceses) %>% filter(!(Dioceses %in% nexus$d
 not_in_cath <- unique(not_in_cath)
 
 
+cath_inst <- merge(cath_inst, nexus, by.x = c("YEAR", "Dioceses"), by.y = c("year", "dioceses"), all.x = TRUE)
 
+
+names(cath_inst)[names(cath_inst) == "nexus"] <- "nexis"
+
+#write.csv(cath_inst, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_inst.csv", row.names = FALSE)
 
 
 
 
 
 ```
+
+```{r}
+cath_inst$nexis_1 <- 0
+cath_inst$nexis_2 <- 0
+cath_inst$nexis_3 <- 0
+
+for(k in 2:length(unique(cath_inst$YEAR))){ 
+  
+  k <- unique(cath_inst$YEAR)[k]
+    
+    for (j in 1:length(unique(cath_inst$LINE))){
+    
+      j <- unique(cath_inst$LINE)[j]
+
+      for (i in 1:length(unique(cath_inst$UNITID))){
+      
+        i <- unique(cath_inst$UNITID)[i]
+  cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "nexis_1"] <-
+      cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "nexis"]  
+
+      }
+    }
+} 
+
+
+for(l in 3:length(unique(cath_inst$YEAR))){ 
+  
+  l <- unique(cath_inst$YEAR)[l]
+    
+    for (j in 1:length(unique(cath_inst$LINE))){
+    
+      j <- unique(cath_inst$LINE)[j]
+
+      for (i in 1:length(unique(cath_inst$UNITID))){
+      
+        i <- unique(cath_inst$UNITID)[i]
+  
+ 
+   cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == l, "nexis_2"] <-
+      cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == l-2, "nexis"]
+  
+  
+      }
+    }
+  } 
+
+for(m in 4:length(unique(cath_inst$YEAR))){ 
+  
+  m <- unique(cath_inst$YEAR)[m]
+    
+    for (j in 1:length(unique(cath_inst$LINE))){
+    
+      j <- unique(cath_inst$LINE)[j]
+
+      for (i in 1:length(unique(cath_inst$UNITID))){
+      
+        i <- unique(cath_inst$UNITID)[i]
+
+ 
+   cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == m, "nexis_3"] <-
+      cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == m-3, "nexis"]
+  
+  
+      }
+    }
+} 
+
+cath_inst[cath_inst$YEAR == 1990, "nexis_1"] <- NA
+cath_inst[cath_inst$YEAR == 1990 | cath_inst$YEAR == 1991, "nexis_2"] <- NA
+cath_inst[cath_inst$YEAR == 1990 | cath_inst$YEAR == 1991 | cath_inst$YEAR == 1992, "nexis_3"] <- NA
+
+cath_inst$nexis_sum_3 <- cath_inst$nexis_1 + cath_inst$nexis_2 + cath_inst$nexis_3
+
+```
+
+
+
+
 
 
