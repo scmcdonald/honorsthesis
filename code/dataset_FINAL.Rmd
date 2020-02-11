@@ -1689,7 +1689,35 @@ nexus$dioceses <- as.character(nexus$dioceses)
 
 nexus <- nexus %>% separate(dioceses,c("dioceses", "year"),  sep = "_")
 
+
+
+
+cath_inst <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_inst.csv")
+
+
+
+
+cath_inst$Dioceses <- as.character(cath_inst$Dioceses)
+
+cath_inst$Dioceses[cath_inst$Dioceses == "St. Paul &amp; Minneapolis"] <- "St. Paul and Minneapolis"
+
+
+missing <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/raw_data/missing-nexus.csv")
+
+nexus <- rbind(nexus, missing)
+
 #write.csv(nexus, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/nexus.csv")
+
+#check that dioceses match
+not_in_cath <- cath_inst %>% select(Dioceses) %>% filter(!(Dioceses %in% nexus$dioceses) == TRUE)
+not_in_cath <- unique(not_in_cath)
+
+
+
+
+
+
+
 
 ```
 
