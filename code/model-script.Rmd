@@ -2,7 +2,10 @@
 title: "model-building"
 author: "Sarah McDonald"
 date: "February 1, 2020"
-output: html_document
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r}
@@ -13,24 +16,228 @@ data <- data[data$YEAR!= 1990 & data$YEAR != 1991 & data$YEAR != 1992, ]
 
 ```
 
-### TOTAL ENROLLMENT
+
+# Bishop Accountability 
+
+### TOTAL ENROLLMENT 
 ```{r}
-enroll_total <- lm(log(EFTOTLT+0.001) ~   log(bishop_pub_sum_3+0.001) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Total", ]) 
+enroll_total <- lm(EFTOTLT ~   bishop_pub_sum_3  + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Total", ]) 
+
+summary(enroll_total)
+```
+
+### GRADUATE ENROLLMENT 
+```{r}
+enroll_grad <- lm(EFTOTLT ~   bishop_pub_sum_3 + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Graduate", ]) 
+
+summary(enroll_grad)
+```
+
+### UNDERGRADUATE ENROLLMENT 
+```{r}
+enroll_undergrad <- lm(EFTOTLT ~ bishop_pub_sum_3   + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
+
+summary(enroll_undergrad)
+```
+
+
+###TOTAL ENROLLMENT - Square Root Transformation
+```{r}
+enroll_total <- lm(sqrt(EFTOTLT) ~   sqrt(bishop_pub_sum_3) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
+
+summary(enroll_total)
+```
+
+### GRADUATE ENROLLMENT - Square Root Transformation
+```{r}
+enroll_grad <- lm(sqrt(EFTOTLT) ~   sqrt(bishop_pub_sum_3) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Graduate", ]) 
+
+summary(enroll_grad)
+```
+
+### UNDERGRADUATE ENROLLMENT - Square Root Transformation
+```{r}
+enroll_undergrad <- lm(sqrt(EFTOTLT) ~   sqrt(bishop_pub_sum_3)  + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
+
+summary(enroll_undergrad)
+```
+
+
+
+###TOTAL ENROLLMENT - Log+1 Transformation
+```{r}
+enroll_total <- lm(log(EFTOTLT+1) ~   log(bishop_pub_sum_3+1) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
+
+summary(enroll_total)
+```
+
+### GRADUATE ENROLLMENT - Log+1 Transformation
+```{r}
+enroll_grad <- lm(log(EFTOTLT+1) ~   log(bishop_pub_sum_3+1)  + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Graduate", ]) 
+
+summary(enroll_grad)
+```
+
+### UNDERGRADUATE ENROLLMENT - Log+1 Transformation
+```{r}
+enroll_undergrad <- lm(log(EFTOTLT+1) ~   log(bishop_pub_sum_3+1)   + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
+
+summary(enroll_undergrad)
+```
+
+
+
+# Nexis-Lexus
+
+### TOTAL ENROLLMENT 
+```{r}
+enroll_total <- lm(EFTOTLT ~   nexis_sum_3  + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Total", ]) 
 
 summary(enroll_total)
 ```
 
 ### GRADUATE ENROLLMENT
 ```{r}
-enroll_grad <- lm(log(EFTOTLT+0.001) ~   log(bishop_pub_sum_3+0.001) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Graduate", ]) 
+enroll_grad <- lm(EFTOTLT ~   nexis_sum_3 + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Graduate", ]) 
 
 summary(enroll_grad)
 ```
 
-### UNDERGRADUATE ENROLLMENT
+### UNDERGRADUATE ENROLLMENT 
 ```{r}
-enroll_undergrad <- lm(log(EFTOTLT +0.000000001) ~  log(bishop_pub_sum_3+0.000000001)   + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
+enroll_undergrad <- lm(EFTOTLT ~ nexis_sum_3   + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
 
 summary(enroll_undergrad)
+```
+
+
+
+###TOTAL ENROLLMENT - Square Root Transformation
+```{r}
+enroll_total <- lm(sqrt(EFTOTLT) ~   sqrt(nexis_sum_3) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
+
+summary(enroll_total)
+```
+
+### GRADUATE ENROLLMENT - Square Root Transformation
+```{r}
+enroll_grad <- lm(sqrt(EFTOTLT) ~   sqrt(nexis_sum_3) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Graduate", ]) 
+
+summary(enroll_grad)
+```
+
+### UNDERGRADUATE ENROLLMENT - Square Root Transformation
+```{r}
+enroll_undergrad <- lm(sqrt(EFTOTLT) ~   sqrt(nexis_sum_3)  + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
+
+summary(enroll_undergrad)
+```
+
+
+###TOTAL ENROLLMENT - Log + 1 Transformation
+```{r}
+enroll_total <- lm(log(EFTOTLT+1) ~   log(nexis_sum_3+1) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
+
+summary(enroll_total)
+```
+
+### GRADUATE ENROLLMENT - Log + 1 Transformation
+```{r}
+enroll_grad <- lm(log(EFTOTLT+1) ~   log(nexis_sum_3+1) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Graduate", ]) 
+
+summary(enroll_grad)
+```
+
+### UNDERGRADUATE ENROLLMENT - Log + 1 Transformation
+```{r}
+enroll_undergrad <- lm(log(EFTOTLT+1) ~   log(nexis_sum_3+1) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
+
+summary(enroll_undergrad)
+```
+
+
+# Other Things I Have Tried
+
+```{r}
+library(ggplot2)
+
+ggplot(data[data$LINE == "Total", ], aes(x= nexis_sum_3, y = EFTOTLT))+
+  geom_point() +
+  theme_classic() +
+  labs(title = "Nexis Publicity VS Total Enrollment", x = "Nexis Publicity", y = "Total Enrollment")
+
+
+ggplot(data[data$LINE == "Total", ], aes(x= bishop_pub_sum_3, y = EFTOTLT))+
+  geom_point()+
+  theme_classic()+
+  labs(title = "Bishop Accountability Publicity VS Total Enrollment", x = "Bishop Accountability Publicity", y = "Total Enrollment")
+
+
+```
+
+```{r}
+
+ggplot(data[data$LINE == "Total", ], aes(x= log(nexis_sum_3+0.0000000001), y = log(EFTOTLT+0.0000000001)))+
+  geom_point() +
+  theme_classic() +
+  labs(title = "Nexis Publicity VS Total Enrollment \n(Log (X+0.0000000001) Transformation)", x = "Nexis Publicity", y = "Total Enrollment")
+
+ggplot(data[data$LINE == "Total", ], aes(x= log(bishop_pub_sum_3+0.0000000001), y = log(EFTOTLT+0.0000000001)))+
+  geom_point()+
+  theme_classic()+
+  labs(title = "Bishop Accountability Publicity VS Total Enrollment \n(Log (X+0.0000000001) Transformation)", x = "Bishop Accountability Publicity", y = "Total Enrollment")
+```
+
+
+```{r}
+ggplot(data[data$LINE == "Total", ], aes(x= sqrt(nexis_sum_3), y = sqrt(EFTOTLT)))+
+  geom_point() +
+  theme_classic() +
+  labs(title = "Nexis Publicity VS Total Enrollment \n(SQRT Transformation)", x = "Nexis Publicity", y = "Total Enrollment")
+
+ggplot(data[data$LINE == "Total", ], aes(x= sqrt(bishop_pub_sum_3), y = sqrt(EFTOTLT)))+
+  geom_point()+
+  theme_classic()+
+  labs(title = "Bishop Accountability Publicity VS Total Enrollment \n(SQRT Transformation)", x = "Bishop Accountability Publicity", y = "Total Enrollment")
+```
+
+
+
+zip model
+```{r}
+
+
+M1 <- glm(EFTOTLT ~ nexis_sum_3 + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Total", ],
+          family = 'poisson')
+
+summary(M1)
+
+
+E2 <- resid(M1, type = "pearson")
+N  <- nrow(data)
+p  <- length(coef(M1))   
+sum(E2^2) / (N - p)
+#overdispersion
+```
+
+```{r}
+library(MASS)
+M2 <- glm.nb(EFTOTLT ~ nexis_sum_3 + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Total",])
+summary(M2)
+
+E2 <- resid(M2, type = "pearson")
+N  <- nrow(data)
+p  <- length(coef(M2)) + 1  # '+1' is for variance parameter in NB
+sum(E2^2) / (N - p)
+#underdispersion?
+
+```
+
+```{r}
+#M3 <- zeroinfl(EFTOTLT ~ nexis_sum_3 + Percent.Catholic + his_prop + pop_dens + income_per_capita,
+              # dist = 'poisson',
+              # data=data[data$LINE == "Total",])
+
+#summary(M3)
 ```
 

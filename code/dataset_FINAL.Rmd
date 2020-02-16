@@ -1713,10 +1713,6 @@ cath_inst <- merge(cath_inst, nexus, by.x = c("YEAR", "Dioceses"), by.y = c("yea
 
 names(cath_inst)[names(cath_inst) == "nexus"] <- "nexis"
 
-#write.csv(cath_inst, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_inst.csv", row.names = FALSE)
-
-
-
 
 
 ```
@@ -1793,8 +1789,62 @@ cath_inst[cath_inst$YEAR == 1990 | cath_inst$YEAR == 1991 | cath_inst$YEAR == 19
 
 cath_inst$nexis_sum_3 <- cath_inst$nexis_1 + cath_inst$nexis_2 + cath_inst$nexis_3
 
+#write.csv(cath_inst, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_inst.csv", row.names = FALSE)
+
+cath_inst <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_inst.csv")
+
 ```
 
+```{r}
+# Three Year Percent Change TOTAL Enrollment
+
+cath_inst$EFTOTLT_3_change <- 0
+for(k in 4:length(unique(cath_inst$YEAR))){ 
+  
+  k <- unique(cath_inst$YEAR)[k]
+  for (j in 1:length(unique(cath_inst$LINE))){
+    
+    j <- unique(cath_inst$LINE)[j]
+    for (i in 1:length(unique(cath_inst$UNITID))){
+      
+      i <- unique(cath_inst$UNITID)[i]
+   
+      
+      
+  # if 2016 == 0     
+if (cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-3, "EFTOTLT"] == 0){
+  
+  #and 2017 ==0, then percent change = 0
+  if(cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLT"] == 0){
+    
+    cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLT_3_change"] <- 0
+    
+    # and 2017 = n, then percent change = 100 (so that we do not have major outliers)
+  } else {
+    cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLT_3_change"] <- 100
+ 
+  }
+  
+  #else, use typical percent chaneg function
+} else {
+  
+       m <- ((cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLT"] -  cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-3, "EFTOTLT"])
+   /cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-3, "EFTOTLT"])*100
+  
+  cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLT_3_change"] <- m
+  
+      }
+    }
+  }
+} 
+cath_inst[cath_inst$YEAR == 1990, "EFTOTLT_3_change"] <- NA
+cath_inst[cath_inst$YEAR == 1991, "EFTOTLT_3_change"] <- NA
+cath_inst[cath_inst$YEAR == 1992, "EFTOTLT_3_change"] <- NA
+
+#write.csv(cath_inst, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_inst.csv", row.names = FALSE)
+
+
+```
 
 
 
