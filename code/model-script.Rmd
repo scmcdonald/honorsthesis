@@ -8,7 +8,7 @@ output:
   word_document: default
 ---
 
-```{r}
+```{r, message = FALSE, warning = FALSE}
 
 library(data.table)
 library(knitr)
@@ -17,12 +17,17 @@ library(kableExtra)
 library(jtools)
 library(huxtable)
 library(ggplot2)
+library(tidyr)
 
-data <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_inst.csv")
+data <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/final_dataset.csv")
 
-#remove 1990 and 1991
+obs <- data %>% select(UNITID, YEAR, LINE) %>% group_by(YEAR, LINE) %>% summarize(n = n())
+obs <- spread(obs, LINE, n)
+kable(obs)
+
+
+#remove 1990 and 1991 and 1992. These years were used to build change overtime measures
 data <- data[data$YEAR!= 1990 & data$YEAR != 1991 & data$YEAR != 1992, ]
-
 
 
 ```
@@ -388,11 +393,10 @@ export_summs(bishop_total_change, bishop_grad_change, bishop_undergrad_change, n
 
 It is interesting that these are not the same top five
 ```{r}
-
 bishop_pub <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/bishop_pub.csv")
-#bishop_pub <- 
+
   
-  bishop_pub %>% filter(public < 2018 & 1989 < public ) %>% group_by(Diocese) %>% summarise(total = sum(bishop_pub)) %>% arrange(desc(total)) %>% top_n(10, total)
+bishop_pub %>% filter(public < 2018 & 1989 < public ) %>% group_by(Diocese) %>% summarise(total = sum(bishop_pub)) %>% arrange(desc(total)) %>% top_n(10, total)
   
   bishop_figure <-bishop_pub %>% filter(public < 2018 & 1989< public) %>% group_by(public) %>% summarize(total = n())
 
@@ -401,16 +405,16 @@ bishop_pub <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulat
   labs(title = "Bishop Publicity: Count of Negative Publicity for Priests Over Time")
   
   
-nexus <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/nexus.csv")
+nexis <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/nexis.csv")
 #bishop_pub <- 
   
-  nexus %>% filter(year < 2018 & 1989 < year ) %>% group_by(dioceses) %>% summarise(total = sum(nexus)) %>% arrange(desc(total)) %>% top_n(10, total)
+  nexis %>% filter(year < 2018 & 1989 < year ) %>% group_by(dioceses) %>% summarise(total = sum(nexis)) %>% arrange(desc(total)) %>% top_n(10, total)
   
   
   
-  nexus_figure <- nexus %>% filter(year < 2018 & 1989 < year) %>% group_by(year) %>% summarise(total = sum(nexus))
+  nexis_figure <- nexis %>% filter(year < 2018 & 1989 < year) %>% group_by(year) %>% summarise(total = sum(nexis))
 
-  ggplot(nexus_figure, aes(x=year, y=total)) +
+  ggplot(nexis_figure, aes(x=year, y=total)) +
   geom_line() +
   labs(title = "NexisUni: Count of Negative Newswires Over Time")
 ```
@@ -418,26 +422,20 @@ nexus <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_da
 
 Phillly, Boston , new York,  LA
 ```{r}
+boston_total_lm  <- lm(EFTOTLT_3_change ~   bishop_pub_sum_3 + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[(data$Dioceses== "New York"|data$Dioceses== "Boston"|data$Dioceses== "Los Angeles"|data$Dioceses== "Philadelphia") & data$LINE == "Total", ]) 
+
+boston_grad_lm  <- lm(EFTOTLT_3_change ~   nexis_sum_3 + Percent.Catholic + his_prop + pop_dens + income_per_capita,data=data[(data$Dioceses== "New York"|data$Dioceses== "Boston"|data$Dioceses== "Los Angeles"|data$Dioceses== "Philadelphia") & data$LINE == "Total", ]) 
+
+
+boston_undergrad_lm  <- lm(EFTOTLT_3_change ~   bishop_pub_sum_3 + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[(data$Dioceses== "New York"|data$Dioceses== "Boston"|data$Dioceses== "Los Angeles"|data$Dioceses== "Philadelphia") & data$LINE == "Total", ]) 
+
+summary(boston_total_lm)
+summary(boston_grad_lm)
+summary(boston_undergrad_lm)
 
 
 
 
-
-boston <- data %>% filter(Dioceses == "Boston"| Dioceses == "New York" | Dioceses == "Philadelphia"| Dioceses == "Los Angeles")
-
-
-boston_lm  <- lm(EFTOTLT_3_change ~   bishop_pub_sum_3 + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=boston) 
-
-summary(boston_lm)
-
-ggplot(boston, aes(x=YEAR, y=bishop_pub)) +
-  geom_line() 
-
-ggplot(boston, aes(x=YEAR, y=nexis)) +
-  geom_line() 
-
-ggplot(boston[boston$LINE == "Total", ], aes(x=YEAR, y=EFTOTLT, color = INSTNM)) +
-  geom_line() 
 
 ```
 
@@ -452,7 +450,7 @@ ggplot(boston[boston$LINE == "Total", ], aes(x=YEAR, y=EFTOTLT, color = INSTNM))
 
 
 
-# Seminaries
+# Seminaries (Total)
 
 ```{r}
 data$CARNEGIE <- as.character(data$CARNEGIE)
@@ -464,13 +462,15 @@ seminary.ids <- unique(seminary.ids)
 
 seminary <- data[data$UNITID %in% seminary.ids, ]
 
-seminary_bishop <- lm(EFTOTLT ~   bishop_pub_sum_3 + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=seminary) 
+seminary_bishop <- lm(EFTOTLT ~   bishop_pub_sum_3 + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=seminary[seminary$LINE == "Total",]) 
 
 summary(seminary_bishop)
 
-seminary_nexis <- lm(EFTOTLT ~  nexis_sum_3 + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=seminary) 
+seminary_nexis <- lm(EFTOTLT ~  nexis_sum_3 + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=seminary[seminary$LINE == "Total", ] )
 
 summary(seminary_nexis)
+
+export_summs(seminary_bishop, seminary_nexis, model.names = c("Seminary: Bishop Accountability", "Seminary: Lexis-Nexis"))
 
 
 

@@ -1825,6 +1825,8 @@ data[data$YEAR == 1990, "EFTOTLT_3_change"] <- NA
 data[data$YEAR == 1991, "EFTOTLT_3_change"] <- NA
 data[data$YEAR == 1992, "EFTOTLT_3_change"] <- NA
 
+data <-  subset(data,select=-c(X))
+
 #write.csv(data, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/final_dataset.csv", row.names = FALSE)
 
 
