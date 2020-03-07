@@ -3,19 +3,36 @@ title: "model-building"
 author: "Sarah McDonald"
 date: "February 1, 2020"
 output:
-  word_document: default
-  pdf_document: default
   html_document: default
+  pdf_document: default
+  word_document: default
 ---
 
 ```{r}
+
+library(data.table)
+library(knitr)
+library(dplyr)
+library(kableExtra)
+library(jtools)
+library(huxtable)
+library(ggplot2)
+
 data <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_inst.csv")
 
 #remove 1990 and 1991
 data <- data[data$YEAR!= 1990 & data$YEAR != 1991 & data$YEAR != 1992, ]
 
+
+
 ```
 
+### Coefficient, P-Value, R-Squared Summary table
+```{r}
+summary_table <- data.table(`Variable` = c("Total Enrollment Publicity Coefficient", "Total Enrollment P-Value", "Total Enrollment R-squared", "Undergraduate Enrollment Publicity Coefficient", "Undergraduate Enrollment P-Value", "Undergraduate Enrollment R-squared", "Graduate Enrollment Publicity Coefficient", "Graduate Enrollment P-Value", "Graduate Enrollment R-squared"), `Nexis-Lexus: Linear` = numeric(length = 9), `Nexis-Lexus: Log(X+1)` = numeric(length = 9), `Nexis-Lexus: Square Root` = numeric(length = 9), `Bishop Accountability: Linear` = numeric(length = 9), `Bishop Accountability: Log(X+1)` = numeric(length = 9), `Bishop Accountability: Square Root` = numeric(length = 9))
+
+
+```
 
 # Bishop Accountability 
 
@@ -23,7 +40,10 @@ data <- data[data$YEAR!= 1990 & data$YEAR != 1991 & data$YEAR != 1992, ]
 ```{r}
 enroll_total <- lm(EFTOTLT ~   bishop_pub_sum_3  + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Total", ]) 
 
-summary(enroll_total)
+
+summary_table[summary_table$Variable  == "Total Enrollment Publicity Coefficient","Bishop Accountability: Linear"] <- summary(enroll_total)$coefficients[2, 1]
+summary_table[summary_table$Variable  == "Total Enrollment P-Value","Bishop Accountability: Linear"] <- summary(enroll_total)$coefficients[2, 4]
+summary_table[summary_table$Variable  == "Total Enrollment R-squared","Bishop Accountability: Linear"] <-summary(enroll_total)$r.squared
 ```
 
 ### GRADUATE ENROLLMENT 
@@ -31,6 +51,15 @@ summary(enroll_total)
 enroll_grad <- lm(EFTOTLT ~   bishop_pub_sum_3 + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Graduate", ]) 
 
 summary(enroll_grad)
+
+summary_table[summary_table$Variable  == "Graduate Enrollment Publicity Coefficient","Bishop Accountability: Linear"] <- summary(enroll_grad)$coefficients[2, 1]
+summary_table[summary_table$Variable  == "Graduate Enrollment P-Value","Bishop Accountability: Linear"] <- summary(enroll_grad)$coefficients[2, 4]
+summary_table[summary_table$Variable  == "Graduate Enrollment R-squared","Bishop Accountability: Linear"] <-summary(enroll_grad)$r.squared
+
+
+
+
+
 ```
 
 ### UNDERGRADUATE ENROLLMENT 
@@ -38,51 +67,94 @@ summary(enroll_grad)
 enroll_undergrad <- lm(EFTOTLT ~ bishop_pub_sum_3   + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
 
 summary(enroll_undergrad)
+
+
+
+summary_table[summary_table$Variable  == "Undergraduate Enrollment Publicity Coefficient","Bishop Accountability: Linear"] <- summary(enroll_undergrad)$coefficients[2, 1]
+summary_table[summary_table$Variable  == "Undergraduate Enrollment P-Value","Bishop Accountability: Linear"] <- summary(enroll_undergrad)$coefficients[2, 4]
+summary_table[summary_table$Variable  == "Undergraduate Enrollment R-squared","Bishop Accountability: Linear"] <-summary(enroll_undergrad)$r.squared
+
+
 ```
 
 
 ###TOTAL ENROLLMENT - Square Root Transformation
 ```{r}
-enroll_total <- lm(sqrt(EFTOTLT) ~   sqrt(bishop_pub_sum_3) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
+enroll_total_sqrt <- lm(sqrt(EFTOTLT) ~   sqrt(bishop_pub_sum_3) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
 
-summary(enroll_total)
+summary(enroll_total_sqrt)
+
+bishop_total_sqrt <- summ(enroll_total_sqrt)
+
+summary_table[summary_table$Variable  == "Total Enrollment Publicity Coefficient","Bishop Accountability: Square Root"] <- summary(enroll_total_sqrt)$coefficients[2, 1]
+summary_table[summary_table$Variable  == "Total Enrollment P-Value","Bishop Accountability: Square Root"] <- summary(enroll_total_sqrt)$coefficients[2, 4]
+summary_table[summary_table$Variable  == "Total Enrollment R-squared","Bishop Accountability: Square Root"] <-summary(enroll_total_sqrt)$r.squared
+
+
 ```
 
 ### GRADUATE ENROLLMENT - Square Root Transformation
 ```{r}
-enroll_grad <- lm(sqrt(EFTOTLT) ~   sqrt(bishop_pub_sum_3) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Graduate", ]) 
+enroll_grad_sqrt <- lm(sqrt(EFTOTLT) ~   sqrt(bishop_pub_sum_3) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Graduate", ]) 
 
-summary(enroll_grad)
+summary(enroll_grad_sqrt)
+
+bishop_grad_sqrt <- summ(enroll_grad_sqrt)
+
+
+summary_table[summary_table$Variable  == "Graduate Enrollment Publicity Coefficient","Bishop Accountability: Square Root"] <- summary(enroll_grad_sqrt)$coefficients[2, 1]
+summary_table[summary_table$Variable  == "Graduate Enrollment P-Value","Bishop Accountability: Square Root"] <- summary(enroll_grad_sqrt)$coefficients[2, 4]
+summary_table[summary_table$Variable  == "Graduate Enrollment R-squared","Bishop Accountability: Square Root"] <-summary(enroll_grad_sqrt)$r.squared
 ```
 
 ### UNDERGRADUATE ENROLLMENT - Square Root Transformation
 ```{r}
-enroll_undergrad <- lm(sqrt(EFTOTLT) ~   sqrt(bishop_pub_sum_3)  + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
+enroll_undergrad_sqrt <- lm(sqrt(EFTOTLT) ~   sqrt(bishop_pub_sum_3)  + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
 
-summary(enroll_undergrad)
+summary(enroll_undergrad_sqrt)
+
+bishop_undergrad_sqrt <- summ(enroll_undergrad_sqrt)
+
+
+summary_table[summary_table$Variable  == "Undergraduate Enrollment Publicity Coefficient","Bishop Accountability: Square Root"] <- summary(enroll_undergrad_sqrt)$coefficients[2, 1]
+summary_table[summary_table$Variable  == "Undergraduate Enrollment P-Value","Bishop Accountability: Square Root"] <- summary(enroll_undergrad_sqrt)$coefficients[2, 4]
+summary_table[summary_table$Variable  == "Undergraduate Enrollment R-squared","Bishop Accountability: Square Root"] <-summary(enroll_undergrad_sqrt)$r.squared
 ```
 
 
 
 ###TOTAL ENROLLMENT - Log+1 Transformation
 ```{r}
-enroll_total <- lm(log(EFTOTLT+1) ~   log(bishop_pub_sum_3+1) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
+enroll_total_log <- lm(log(EFTOTLT+1) ~   log(bishop_pub_sum_3+1) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
 
-summary(enroll_total)
+summary(enroll_total_log)
+
+summary_table[summary_table$Variable  == "Total Enrollment Publicity Coefficient","Bishop Accountability: Log(X+1)"] <- summary(enroll_total_log)$coefficients[2, 1]
+summary_table[summary_table$Variable  == "Total Enrollment P-Value","Bishop Accountability: Log(X+1)"] <- summary(enroll_total_log)$coefficients[2, 4]
+summary_table[summary_table$Variable  == "Total Enrollment R-squared","Bishop Accountability: Log(X+1)"] <-summary(enroll_total_log)$r.squared
 ```
 
 ### GRADUATE ENROLLMENT - Log+1 Transformation
 ```{r}
-enroll_grad <- lm(log(EFTOTLT+1) ~   log(bishop_pub_sum_3+1)  + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Graduate", ]) 
+enroll_grad_log <- lm(log(EFTOTLT+1) ~   log(bishop_pub_sum_3+1)  + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Graduate", ]) 
 
-summary(enroll_grad)
+summary(enroll_grad_log)
+
+
+summary_table[summary_table$Variable  == "Graduate Enrollment Publicity Coefficient","Bishop Accountability: Log(X+1)"] <- summary(enroll_grad_log)$coefficients[2, 1]
+summary_table[summary_table$Variable  == "Graduate Enrollment P-Value","Bishop Accountability: Log(X+1)"] <- summary(enroll_grad_log)$coefficients[2, 4]
+summary_table[summary_table$Variable  == "Graduate Enrollment R-squared","Bishop Accountability: Log(X+1)"] <-summary(enroll_grad_log)$r.squared
 ```
 
 ### UNDERGRADUATE ENROLLMENT - Log+1 Transformation
 ```{r}
-enroll_undergrad <- lm(log(EFTOTLT+1) ~   log(bishop_pub_sum_3+1)   + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
+enroll_undergrad_log <- lm(log(EFTOTLT+1) ~   log(bishop_pub_sum_3+1)   + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
 
-summary(enroll_undergrad)
+summary(enroll_undergrad_log)
+
+summary_table[summary_table$Variable  == "Undergraduate Enrollment Publicity Coefficient","Bishop Accountability: Log(X+1)"] <- summary(enroll_undergrad_log)$coefficients[2, 1]
+summary_table[summary_table$Variable  == "Undergraduate Enrollment P-Value","Bishop Accountability: Log(X+1)"] <- summary(enroll_undergrad_log)$coefficients[2, 4]
+summary_table[summary_table$Variable  == "Undergraduate Enrollment R-squared","Bishop Accountability: Log(X+1)"] <-summary(enroll_undergrad_log)$r.squared
 ```
 
 
@@ -91,69 +163,329 @@ summary(enroll_undergrad)
 
 ### TOTAL ENROLLMENT 
 ```{r}
-enroll_total <- lm(EFTOTLT ~   nexis_sum_3  + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Total", ]) 
+nexis_enroll_total <- lm(EFTOTLT ~   nexis_sum_3  + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Total", ]) 
 
-summary(enroll_total)
+summary(nexis_enroll_total)
+
+summary_table[summary_table$Variable  == "Total Enrollment Publicity Coefficient","Nexis-Lexus: Linear"] <- summary(nexis_enroll_total)$coefficients[2, 1]
+summary_table[summary_table$Variable  == "Total Enrollment P-Value","Nexis-Lexus: Linear"] <- summary(nexis_enroll_total)$coefficients[2, 4]
+summary_table[summary_table$Variable  == "Total Enrollment R-squared","Nexis-Lexus: Linear"] <-summary(nexis_enroll_total)$r.squared
 ```
 
 ### GRADUATE ENROLLMENT
 ```{r}
-enroll_grad <- lm(EFTOTLT ~   nexis_sum_3 + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Graduate", ]) 
+nexis_enroll_grad <- lm(EFTOTLT ~   nexis_sum_3 + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Graduate", ]) 
 
-summary(enroll_grad)
+summary(nexis_enroll_grad)
+
+summary_table[summary_table$Variable  == "Graduate Enrollment Publicity Coefficient","Nexis-Lexus: Linear"] <- summary(nexis_enroll_grad)$coefficients[2, 1]
+summary_table[summary_table$Variable  == "Graduate Enrollment P-Value","Nexis-Lexus: Linear"] <- summary(nexis_enroll_grad)$coefficients[2, 4]
+summary_table[summary_table$Variable  == "Graduate Enrollment R-squared","Nexis-Lexus: Linear"] <-summary(nexis_enroll_grad)$r.squared
 ```
 
 ### UNDERGRADUATE ENROLLMENT 
 ```{r}
-enroll_undergrad <- lm(EFTOTLT ~ nexis_sum_3   + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
+nexis_enroll_undergrad <- lm(EFTOTLT ~ nexis_sum_3   + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
 
-summary(enroll_undergrad)
+summary(nexis_enroll_undergrad)
+
+summary_table[summary_table$Variable  == "Undergraduate Enrollment Publicity Coefficient","Nexis-Lexus: Linear"] <- summary(nexis_enroll_undergrad)$coefficients[2, 1]
+summary_table[summary_table$Variable  == "Undergraduate Enrollment P-Value","Nexis-Lexus: Linear"] <- summary(nexis_enroll_undergrad)$coefficients[2, 4]
+summary_table[summary_table$Variable  == "Undergraduate Enrollment R-squared","Nexis-Lexus: Linear"] <-summary(nexis_enroll_undergrad)$r.squared
 ```
 
 
 
 ###TOTAL ENROLLMENT - Square Root Transformation
 ```{r}
-enroll_total <- lm(sqrt(EFTOTLT) ~   sqrt(nexis_sum_3) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
+nexis_enroll_total_sqrt <- lm(sqrt(EFTOTLT) ~   sqrt(nexis_sum_3) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
 
-summary(enroll_total)
+summary(nexis_enroll_total_sqrt)
+
+nexis_total_sqrt <- summ(nexis_enroll_total_sqrt)
+
+summary_table[summary_table$Variable  == "Total Enrollment Publicity Coefficient","Nexis-Lexus: Square Root"] <- summary(nexis_enroll_total_sqrt)$coefficients[2, 1]
+summary_table[summary_table$Variable  == "Total Enrollment P-Value","Nexis-Lexus: Square Root"] <- summary(nexis_enroll_total_sqrt)$coefficients[2, 4]
+summary_table[summary_table$Variable  == "Total Enrollment R-squared","Nexis-Lexus: Square Root"] <-summary(nexis_enroll_total_sqrt)$r.squared
 ```
 
 ### GRADUATE ENROLLMENT - Square Root Transformation
 ```{r}
-enroll_grad <- lm(sqrt(EFTOTLT) ~   sqrt(nexis_sum_3) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Graduate", ]) 
+nexis_enroll_grad_sqrt <- lm(sqrt(EFTOTLT) ~   sqrt(nexis_sum_3) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Graduate", ]) 
 
-summary(enroll_grad)
+summary(nexis_enroll_grad_sqrt)
+
+nexis_grad_sqrt <- summ(nexis_enroll_grad_sqrt)
+
+
+summary_table[summary_table$Variable  == "Graduate Enrollment Publicity Coefficient","Nexis-Lexus: Square Root"] <- summary(nexis_enroll_grad_sqrt)$coefficients[2, 1]
+summary_table[summary_table$Variable  == "Graduate Enrollment P-Value","Nexis-Lexus: Square Root"] <- summary(nexis_enroll_grad_sqrt)$coefficients[2, 4]
+summary_table[summary_table$Variable  == "Graduate Enrollment R-squared","Nexis-Lexus: Square Root"] <-summary(nexis_enroll_grad_sqrt)$r.squared
 ```
 
 ### UNDERGRADUATE ENROLLMENT - Square Root Transformation
 ```{r}
-enroll_undergrad <- lm(sqrt(EFTOTLT) ~   sqrt(nexis_sum_3)  + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
+nexis_enroll_undergrad_sqrt <- lm(sqrt(EFTOTLT) ~   sqrt(nexis_sum_3)  + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
 
-summary(enroll_undergrad)
+summary(nexis_enroll_undergrad_sqrt)
+
+nexis_undergrad_sqrt <- summ(nexis_enroll_undergrad_sqrt)
+
+summary_table[summary_table$Variable  == "Undergraduate Enrollment Publicity Coefficient","Nexis-Lexus: Square Root"] <- summary(nexis_enroll_undergrad_sqrt)$coefficients[2, 1]
+summary_table[summary_table$Variable  == "Undergraduate Enrollment P-Value","Nexis-Lexus: Square Root"] <- summary(nexis_enroll_undergrad_sqrt)$coefficients[2, 4]
+summary_table[summary_table$Variable  == "Undergraduate Enrollment R-squared","Nexis-Lexus: Square Root"] <-summary(nexis_enroll_undergrad_sqrt)$r.squared
 ```
 
 
 ###TOTAL ENROLLMENT - Log + 1 Transformation
 ```{r}
-enroll_total <- lm(log(EFTOTLT+1) ~   log(nexis_sum_3+1) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
+nexis_enroll_total_log <- lm(log(EFTOTLT+1) ~   log(nexis_sum_3+1) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
 
-summary(enroll_total)
+summary(nexis_enroll_total_log)
+
+summary_table[summary_table$Variable  == "Total Enrollment Publicity Coefficient","Nexis-Lexus: Log(X+1)"] <- summary(nexis_enroll_total_log)$coefficients[2, 1]
+summary_table[summary_table$Variable  == "Total Enrollment P-Value","Nexis-Lexus: Log(X+1)"] <- summary(nexis_enroll_total_log)$coefficients[2, 4]
+summary_table[summary_table$Variable  == "Total Enrollment R-squared","Nexis-Lexus: Log(X+1)"] <-summary(nexis_enroll_total_log)$r.squared
 ```
 
 ### GRADUATE ENROLLMENT - Log + 1 Transformation
 ```{r}
-enroll_grad <- lm(log(EFTOTLT+1) ~   log(nexis_sum_3+1) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Graduate", ]) 
+nexis_enroll_grad_log <- lm(log(EFTOTLT+1) ~   log(nexis_sum_3+1) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Graduate", ]) 
 
-summary(enroll_grad)
+summary(nexis_enroll_grad_log)
+
+summary_table[summary_table$Variable  == "Graduate Enrollment Publicity Coefficient","Nexis-Lexus: Log(X+1)"] <- summary(nexis_enroll_grad_log)$coefficients[2, 1]
+summary_table[summary_table$Variable  == "Graduate Enrollment P-Value","Nexis-Lexus: Log(X+1)"] <- summary(nexis_enroll_grad_log)$coefficients[2, 4]
+summary_table[summary_table$Variable  == "Graduate Enrollment R-squared","Nexis-Lexus: Log(X+1)"] <-summary(nexis_enroll_grad_log)$r.squared
 ```
 
 ### UNDERGRADUATE ENROLLMENT - Log + 1 Transformation
 ```{r}
-enroll_undergrad <- lm(log(EFTOTLT+1) ~   log(nexis_sum_3+1) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
+nexis_enroll_undergrad_log <- lm(log(EFTOTLT+1) ~   log(nexis_sum_3+1) + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
 
-summary(enroll_undergrad)
+summary(nexis_enroll_undergrad_log)
+
+summary_table[summary_table$Variable  == "Undergraduate Enrollment Publicity Coefficient","Nexis-Lexus: Log(X+1)"] <- summary(nexis_enroll_undergrad_log)$coefficients[2, 1]
+summary_table[summary_table$Variable  == "Undergraduate Enrollment P-Value","Nexis-Lexus: Log(X+1)"] <- summary(nexis_enroll_undergrad_log)$coefficients[2, 4]
+summary_table[summary_table$Variable  == "Undergraduate Enrollment R-squared","Nexis-Lexus: Log(X+1)"] <-summary(nexis_enroll_undergrad_log)$r.squared
 ```
+
+
+
+# Percent Change Table
+```{r}
+change_table <- data.table(`Variable` = c("Total Enrollment % Change Publicity Coefficient", "Total Enrollment % Change P-Value", "Total Enrollment % Change R-squared", "Undergraduate Enrollment % Change Publicity Coefficient", "Undergraduate Enrollment % Change P-Value", "Undergraduate Enrollment % Change R-squared", "Graduate Enrollment % Change Publicity Coefficient", "Graduate Enrollment % Change P-Value", "Graduate Enrollment % Change R-squared"), `Nexis-Lexis: Linear` = numeric(length = 9),  `Bishop Accountability: Linear` = numeric(length = 9))
+
+
+```
+
+
+
+# Bishop Accountability Percent change
+
+### TOTAL ENROLLMENT 
+```{r}
+bishop_total_change <- lm(EFTOTLT_3_change ~   bishop_pub_sum_3  + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Total", ]) 
+
+summary(bishop_total_change)
+
+change_table[change_table$Variable  == "Total Enrollment % Change Publicity Coefficient","Bishop Accountability: Linear"] <- summary(bishop_total_change)$coefficients[2, 1]
+change_table[change_table$Variable  == "Total Enrollment % Change P-Value","Bishop Accountability: Linear"] <- summary(bishop_total_change)$coefficients[2, 4]
+change_table[change_table$Variable  == "Total Enrollment % Change R-squared","Bishop Accountability: Linear"] <-summary(bishop_total_change)$r.squared
+
+```
+
+### GRADUATE ENROLLMENT 
+```{r}
+bishop_grad_change <- lm(EFTOTLT_3_change ~   bishop_pub_sum_3 + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Graduate", ]) 
+
+summary(bishop_grad_change)
+
+change_table[change_table$Variable  == "Graduate Enrollment % Change Publicity Coefficient","Bishop Accountability: Linear"] <- summary(bishop_grad_change)$coefficients[2, 1]
+change_table[change_table$Variable  == "Graduate Enrollment % Change P-Value","Bishop Accountability: Linear"] <- summary(bishop_grad_change)$coefficients[2, 4]
+change_table[change_table$Variable  == "Graduate Enrollment % Change R-squared","Bishop Accountability: Linear"] <-summary(bishop_grad_change)$r.squared
+```
+
+### UNDERGRADUATE ENROLLMENT 
+```{r}
+bishop_undergrad_change <- lm(EFTOTLT_3_change ~ bishop_pub_sum_3   + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
+
+summary(bishop_undergrad_change)
+
+change_table[change_table$Variable  == "Undergraduate Enrollment % Change Publicity Coefficient","Bishop Accountability: Linear"] <- summary(bishop_undergrad_change)$coefficients[2, 1]
+change_table[change_table$Variable  == "Undergraduate Enrollment % Change P-Value","Bishop Accountability: Linear"] <- summary(bishop_undergrad_change)$coefficients[2, 4]
+change_table[change_table$Variable  == "Undergraduate Enrollment % Change R-squared","Bishop Accountability: Linear"] <-summary(bishop_undergrad_change)$r.squared
+
+```
+
+
+# Percent Change, Nexis
+
+### TOTAL ENROLLMENT 
+```{r}
+nexis_total_change <- lm(EFTOTLT_3_change ~   nexis_sum_3  + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Total", ]) 
+
+summary(nexis_total_change)
+
+change_table[change_table$Variable  == "Total Enrollment % Change Publicity Coefficient","Nexis-Lexis: Linear"] <- summary(nexis_total_change)$coefficients[2, 1]
+change_table[change_table$Variable  == "Total Enrollment % Change P-Value","Nexis-Lexis: Linear"] <- summary(nexis_total_change)$coefficients[2, 4]
+change_table[change_table$Variable  == "Total Enrollment % Change R-squared","Nexis-Lexis: Linear"] <-summary(nexis_total_change)$r.squared
+
+```
+
+### GRADUATE ENROLLMENT 
+```{r}
+nexis_grad_change <- lm(EFTOTLT_3_change ~   nexis_sum_3 + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Graduate", ]) 
+
+summary(nexis_grad_change)
+
+change_table[change_table$Variable  == "Graduate Enrollment % Change Publicity Coefficient","Nexis-Lexis: Linear"] <- summary(nexis_grad_change)$coefficients[2, 1]
+change_table[change_table$Variable  == "Graduate Enrollment % Change P-Value","Nexis-Lexis: Linear"] <- summary(nexis_grad_change)$coefficients[2, 4]
+change_table[change_table$Variable  == "Graduate Enrollment % Change R-squared","Nexis-Lexis: Linear"] <-summary(nexis_grad_change)$r.squared
+
+```
+
+### UNDERGRADUATE ENROLLMENT 
+```{r}
+nexis_undergrad_change <- lm(EFTOTLT_3_change ~ nexis_sum_3   + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=data[data$LINE == "Undergraduates", ]) 
+
+summary(nexis_undergrad_change)
+
+change_table[change_table$Variable  == "Undergraduate Enrollment % Change Publicity Coefficient","Nexis-Lexis: Linear"] <- summary(nexis_undergrad_change)$coefficients[2, 1]
+change_table[change_table$Variable  == "Undergraduate Enrollment % Change P-Value","Nexis-Lexis: Linear"] <- summary(nexis_undergrad_change)$coefficients[2, 4]
+change_table[change_table$Variable  == "Undergraduate Enrollment % Change R-squared","Nexis-Lexis: Linear"] <-summary(nexis_undergrad_change)$r.squared
+
+
+```
+
+
+```{r}
+kable(summary_table) %>%
+  row_spec(1:3, bold = T, color = "white", background = "#57A773") %>%
+  row_spec(4:6, bold = T, color = "white", background = "#A7A5C6") %>%
+  row_spec(7:9, bold = T, color = "white", background = "#EDCF8E") 
+
+kable(change_table) %>%
+  row_spec(1:3, bold = T, color = "white", background = "#57A773") %>%
+  row_spec(4:6, bold = T, color = "white", background = "#A7A5C6") %>%
+  row_spec(7:9, bold = T, color = "white", background = "#EDCF8E") 
+
+
+```
+
+
+```{r}
+export_summs(bishop_total_sqrt, bishop_grad_sqrt, bishop_undergrad_sqrt, nexis_total_sqrt, nexis_grad_sqrt, nexis_undergrad_sqrt, model.names = c("Bishop Accountability: Total", "Bishop Accountability: Graduate", "Bishop Accountability: Undergraduate", "Nexis-Lexus: Total", "Nexis-Lexus: Graduate", "Nexis-Lexus: Undergraduate"))
+
+
+
+export_summs(bishop_total_change, bishop_grad_change, bishop_undergrad_change, nexis_total_change, nexis_grad_change, nexis_undergrad_change, model.names = c("Bishop Accountability: Total % Change", "Bishop Accountability: Graduate % Change", "Bishop Accountability: Undergraduate % Change", "Nexis-Lexus: Total % Change", "Nexis-Lexus: Graduate % Change", "Nexis-Lexus: Undergraduate % Change"))
+```
+
+
+
+
+
+It is interesting that these are not the same top five
+```{r}
+
+bishop_pub <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/bishop_pub.csv")
+#bishop_pub <- 
+  
+  bishop_pub %>% filter(public < 2018 & 1989 < public ) %>% group_by(Diocese) %>% summarise(total = sum(bishop_pub)) %>% arrange(desc(total)) %>% top_n(10, total)
+  
+  bishop_figure <-bishop_pub %>% filter(public < 2018 & 1989< public) %>% group_by(public) %>% summarize(total = n())
+
+  ggplot(bishop_figure, aes(x=public, y=total)) +
+  geom_line() +
+  labs(title = "Bishop Publicity: Count of Negative Publicity for Priests Over Time")
+  
+  
+nexus <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/nexus.csv")
+#bishop_pub <- 
+  
+  nexus %>% filter(year < 2018 & 1989 < year ) %>% group_by(dioceses) %>% summarise(total = sum(nexus)) %>% arrange(desc(total)) %>% top_n(10, total)
+  
+  
+  
+  nexus_figure <- nexus %>% filter(year < 2018 & 1989 < year) %>% group_by(year) %>% summarise(total = sum(nexus))
+
+  ggplot(nexus_figure, aes(x=year, y=total)) +
+  geom_line() +
+  labs(title = "NexisUni: Count of Negative Newswires Over Time")
+```
+
+
+Phillly, Boston , new York,  LA
+```{r}
+
+
+
+
+
+boston <- data %>% filter(Dioceses == "Boston"| Dioceses == "New York" | Dioceses == "Philadelphia"| Dioceses == "Los Angeles")
+
+
+boston_lm  <- lm(EFTOTLT_3_change ~   bishop_pub_sum_3 + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=boston) 
+
+summary(boston_lm)
+
+ggplot(boston, aes(x=YEAR, y=bishop_pub)) +
+  geom_line() 
+
+ggplot(boston, aes(x=YEAR, y=nexis)) +
+  geom_line() 
+
+ggplot(boston[boston$LINE == "Total", ], aes(x=YEAR, y=EFTOTLT, color = INSTNM)) +
+  geom_line() 
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+# Seminaries
+
+```{r}
+data$CARNEGIE <- as.character(data$CARNEGIE)
+
+seminary.ids <- data[data$CARNEGIE == "Theological seminaries and other specialized faith-related institutions" & is.na(data$CARNEGIE)==FALSE, "UNITID"]
+
+seminary.ids <- unique(seminary.ids)
+
+
+seminary <- data[data$UNITID %in% seminary.ids, ]
+
+seminary_bishop <- lm(EFTOTLT ~   bishop_pub_sum_3 + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=seminary) 
+
+summary(seminary_bishop)
+
+seminary_nexis <- lm(EFTOTLT ~  nexis_sum_3 + Percent.Catholic + his_prop + pop_dens + income_per_capita, data=seminary) 
+
+summary(seminary_nexis)
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
 
 
 # Other Things I Have Tried

@@ -4,8 +4,8 @@ author: "Sarah McDonald"
 date: "November 12, 2019"
 output: html_document
 ---
-# Set up
-For the acquisition, four packages are needed: *gtools*, *dplyr*, *stringr*, and *stringi*. Additionally, we read in an csv file with the variables we want from each table.
+# Set Up
+For the data acquisition, four the packages below are needed. Additionally, we load a CSV with the variables needed from the IPEDS tables.
 ```{r, warning= FALSE, message= FALSE}
 library(gtools)
 library(dplyr)
@@ -429,7 +429,7 @@ EFA_df <- EFA_df %>% spread(Type, Count)
 
 # Institutional Characteristics - Educational offerings, organization, services and athletic associations
 
-The code below acquires the institutional characteristics variables of interest, specifically religious affiliation for 2000-2017. *The data is available from 1980 if needed - I can easily write code to include earlier years if needed*.
+The code below acquires the institutional characteristics variables of interest, specifically religious affiliation for 2000-2017. 
 ```{r, warning = FALSE, message = FALSE}
 survey_file <- "ic"
 capital_survey_file <- "IC"
@@ -504,25 +504,19 @@ library(dplyr)
 data <- data %>% filter(is.na(INSTNM) == FALSE)
 ```
 
-######Geography Manipulation
+######Non-state remove
 
 
 Since we find that state are complete after removing our missing 1991 and 1992 schools, we remove the following: American Samoa,Federated States of Micronesia, Guam, Marshall Islands, Northern Marianas, Palau,Puerto Rico, and Virgin Islands as they are outside the scope of our analyses.
-
 
 
 ```{r, warnings = FALSE, message = FALSE}
 
 data <- data %>% filter(STABBR != "AS" & STABBR != "FM" & STABBR != "GU" & STABBR != "MH" & STABBR != "MP" & STABBR != "PW" & STABBR != "PR" & STABBR != "VI")
 
-for.profit <- data %>% filter(CNTLAFFI == 2)
-
-ggplot(for.profit, aes(y = EFTOTLT))+
-  geom_boxplot()
-  
-
 ```
 
+We check to ensure that Sector is consistent with CNTLAFFI. For our analysis, we select nonprofit and private only, and fill in CNTLAFFI.
 ```{r}
 # Sector = 3, 6, 9 shows FOR PROFIT, CNTLAFFI shows FOR PROFIT
 data %>% filter((SECTOR== 9 | SECTOR == 6|SECTOR == 3) & CNTLAFFI != 2)
@@ -538,8 +532,6 @@ data %>% filter((SECTOR== 8 | SECTOR == 5|SECTOR == 2) & (CNTLAFFI != 3 & CNTLAF
 # SECTOR IS ALWAYS PRESENT
 data %>% filter(is.na(SECTOR)==TRUE)
 
-
-#select nonprofitprivate and public
 data <- data %>% filter(SECTOR == 1|SECTOR == 4|SECTOR == 7|SECTOR == 2|SECTOR == 5|SECTOR == 8)
 
 #public
@@ -548,24 +540,12 @@ data[data$SECTOR == 4 , "CNTLAFFI"] <- 1
 data[data$SECTOR == 7 , "CNTLAFFI"] <- 1
 
 
-#remove where all total enrollment counts equal NA, 
+#remove where all total enrollment counts equal NA
 data <-data %>% filter(is.na(data$EFTOTLT)==FALSE)
 
 
-
-library(ggplot2)
-years <- data %>% select(UNITID, YEAR) %>% group_by(UNITID) %>% summarize(count = n())
-ggplot(years, aes(count)) +
-  geom_bar()
-
-#remove incomplete observations 28 years * 3(total, UG, Grad) = 84
-
-
-years <- years %>% filter(count == 84)
-
-data <- data %>% filter(UNITID %in% years$UNITID)
-
 ```
+
 
 This is where we use 2000 values to fill in for 1990-1999 missing values
 ```{r}
@@ -589,7 +569,84 @@ data <- data %>% fill(DEGGRANT, .direction = "up")
 data <- data %>% fill(CARNEGIE, .direction = "up")
 
 
+
+
+
 ```
+#We make the category codes meaningful
+
+```{r, warning = FALSE, message = FALSE}
+var <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/variables/variables2.csv")
+sector <- var %>% filter(varname == "SECTOR")
+data <- merge(data, sector[, c("codevalue","valuelabel")], by.x = "SECTOR", by.y = "codevalue", all.x = TRUE)
+data <- subset(data,select=-c(SECTOR))
+colnames(data)[colnames(data) == "valuelabel"] <- "SECTOR"
+```
+
+
+```{r, warning=FALSE, message=FALSE}
+pubprivate <- var %>% filter(varname == "CNTLAFFI")
+
+data <- merge(data, pubprivate[, c("codevalue", "valuelabel")], by.x = "CNTLAFFI", by.y = "codevalue", all.x = TRUE)
+data <- subset(data,select=-c(CNTLAFFI))
+colnames(data)[colnames(data) == "valuelabel"] <- "PUBPRIVATE"
+```
+
+```{r, warning = FALSE, message = FALSE}
+relaff <- var %>% filter(varname == "RELAFFIL")
+
+data <- merge(data, relaff[, c("codevalue", "valuelabel")], by.x = "RELAFFIL", by.y = "codevalue", all.x = TRUE)
+data <- subset(data,select=-c(RELAFFIL))
+colnames(data)[colnames(data) == "valuelabel"] <- "RELAFFIL"
+```
+
+```{r, warning = FALSE, message = FALSE}
+deggrant <- var %>% filter(varname == "DEGGRANT")
+data <- merge(data, deggrant[, c("codevalue", "valuelabel")], by.x = "DEGGRANT", by.y = "codevalue", all.x = TRUE)
+data <- subset(data,select=-c(DEGGRANT))
+colnames(data)[colnames(data) == "valuelabel"] <- "DEGGRANT"
+```
+
+
+Assumption: doctoral I and research I used to be separate. Listed together in 2017 as Doctoral/Research - extensive
+
+```{r, warning = FALSE, message = FALSE}
+carnegie <- var %>% filter(varname == "CARNEGIE")
+data <- merge(data, carnegie[, c("codevalue", "valuelabel")], by.x = "CARNEGIE", by.y = "codevalue", all.x = TRUE)
+data <- subset(data,select=-c(CARNEGIE))
+colnames(data)[colnames(data) == "valuelabel"] <- "CARNEGIE"
+```
+
+
+This is wear we select catholic schools. All schools must have 2017 data.
+
+```{r}
+
+catholic <- data %>% filter(RELAFFIL == "Roman Catholic" & YEAR == 2017) %>% select(UNITID)
+catholic.ids <- unique(catholic$UNITID)
+
+catholic <- data[data$UNITID %in% catholic.ids, ]
+
+
+
+
+data <- catholic
+
+#years <- data %>% select(UNITID, YEAR) %>% group_by(UNITID) %>% summarize(count = n())
+
+
+#remove incomplete observations 28 years * 3(total, UG, Grad) = 84
+
+
+#years <- years %>% filter(count != 84)
+
+#data <- data %>% filter(UNITID %in% years$UNITID)
+
+```
+
+
+
+
 
 # NOW ZIPCODES
 
@@ -603,12 +660,6 @@ We make the call to only match 2017 zip codes, as zip codes are not stable over 
 https://anthonylouisdagostino.com/a-better-zip5-county-crosswalk/
 https://www.zip-codes.com/zip-code/27695/zip-code-27695.asp
 https://nces.ed.gov/globallocator/index.asp?search=1&State=&city=&zipcode=&miles=&itemname=pardee&sortby=name&School=1&PrivSchool=1&College=1&Status=Search+Finished&Records=104&CS=A56C2DD
-
-
-
-
-
-
 
 
 
@@ -827,53 +878,10 @@ data <- merge(data, count_dioceses[, c(1,4,5)], by.x = "county", by.y = "GEOID",
 
 ```
 
-#We make the category codes meaningful
 
-```{r, warning = FALSE, message = FALSE}
-var <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/variables/variables2.csv")
-sector <- var %>% filter(varname == "SECTOR")
-data <- merge(data, sector[, c("codevalue","valuelabel")], by.x = "SECTOR", by.y = "codevalue", all.x = TRUE)
-data <- subset(data,select=-c(SECTOR))
-colnames(data)[colnames(data) == "valuelabel"] <- "SECTOR"
-```
-
-
-```{r, warning=FALSE, message=FALSE}
-pubprivate <- var %>% filter(varname == "CNTLAFFI")
-
-data <- merge(data, pubprivate[, c("codevalue", "valuelabel")], by.x = "CNTLAFFI", by.y = "codevalue", all.x = TRUE)
-data <- subset(data,select=-c(CNTLAFFI))
-colnames(data)[colnames(data) == "valuelabel"] <- "PUBPRIVATE"
-```
-
-```{r, warning = FALSE, message = FALSE}
-relaff <- var %>% filter(varname == "RELAFFIL")
-
-data <- merge(data, relaff[, c("codevalue", "valuelabel")], by.x = "RELAFFIL", by.y = "codevalue", all.x = TRUE)
-data <- subset(data,select=-c(RELAFFIL))
-colnames(data)[colnames(data) == "valuelabel"] <- "RELAFFIL"
-```
-
-```{r, warning = FALSE, message = FALSE}
-deggrant <- var %>% filter(varname == "DEGGRANT")
-data <- merge(data, deggrant[, c("codevalue", "valuelabel")], by.x = "DEGGRANT", by.y = "codevalue", all.x = TRUE)
-data <- subset(data,select=-c(DEGGRANT))
-colnames(data)[colnames(data) == "valuelabel"] <- "DEGGRANT"
-```
-
-
-Assumption: doctoral I and research I used to be separate. Listed together in 2017 as Doctoral/Research - extensive
-
-```{r, warning = FALSE, message = FALSE}
-carnegie <- var %>% filter(varname == "CARNEGIE")
-data <- merge(data, carnegie[, c("codevalue", "valuelabel")], by.x = "CARNEGIE", by.y = "codevalue", all.x = TRUE)
-data <- subset(data,select=-c(CARNEGIE))
-colnames(data)[colnames(data) == "valuelabel"] <- "CARNEGIE"
-```
-Next, we tried to use the following interpolation script using na.locf. However, this cause issues with numbers not matching up between sector and cntlaffil
 ```{r, warning=FALSE}
-#write.csv(data, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/ipeds_dioceses.csv", row.names = FALSE)
-data <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/ipeds_dioceses.csv")
+#write.csv(data, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_ipeds_dioceses.csv", row.names = FALSE)
+data <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_ipeds_dioceses.csv")
 data$county <- ifelse(nchar(data$county) == 4,  paste0("0", data$county), data$county)
 ```
 
@@ -1295,6 +1303,7 @@ list <- smartbind(list, anch, bato, kcks)
 
 
 
+
 #removes blank values and where the name was printed in cell instead of year - some of the dioceses name changes specifed in the tables themselves (example, look at MOBILE) 
 list <- list %>% filter(nchar(Year)==4)
 
@@ -1308,6 +1317,8 @@ list <- list %>% filter(is.na(`Percent Catholic`)==FALSE)
 
 #zeros are missing values as well (look at Richmond)
 list <-list %>% filter(`Percent Catholic` != 0)
+
+#write.csv(list, "C:/Users/Sarah McDonald/Documents/honorsthesis/raw_data/catholic_hierarchy.csv")
 
 #interpolation: test for birmingham (birm)
 
@@ -1353,8 +1364,10 @@ unique(cath.na) #the winona dicoses is the only one missing
 # DATA BEFORE NEGATIVE PUBLICITY
 
 ```{r, warning=FALSE}
-#write.csv(data, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/data_before_pub.csv", row.names = FALSE)
-data <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/data_before_pub.csv")
+data <- subset(data, select = -c(GeoName))
+
+#write.csv(data, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/data_socio.csv", row.names = FALSE)
+data <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/data_socio.csv")
 data$county <- ifelse(nchar(data$county) == 4,  paste0("0", data$county), data$county)
 ```
 
@@ -1362,25 +1375,7 @@ data$county <- ifelse(nchar(data$county) == 4,  paste0("0", data$county), data$c
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-negative publicity data
+#negative publicity data
 ```{r, warning=FALSE, message=FALSE}
 url <- paste("http://origin.bishop-accountability.org/priestdb/PriestDBbylastName-", "A", ".html", sep="")
 webpage <- read_html(url)
@@ -1468,8 +1463,7 @@ tbl <- rbind(tbl, duplicates)
 bishop_pub <-tbl %>% group_by(Diocese, public) %>% tally()
 colnames(bishop_pub)[colnames(bishop_pub)=="n"] <- "bishop_pub"
 
-dioceses_bishop <- unique(bishop_pub$Diocese)
-#data <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/ipeds-socio-geo.csv")
+
 
 dioceses_data <- unique(data$Dioceses)
 dioceses_data <- as.character(as.factor(dioceses_data))
@@ -1492,7 +1486,7 @@ bishop_pub$Diocese[bishop_pub$Diocese=="Springfield IL"] <- "Springfield in Illi
 
 #write.csv(bishop_pub, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/bishop_pub.csv", row.names = FALSE)
 
-
+bishop_pub<- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/bishop_pub.csv")
 
 
 #dioceses_bishop <- gsub("Fort Wayne-South Bend", "Fort Wayne - South Bend", dioceses_bishop)
@@ -1515,333 +1509,323 @@ data$bishop_pub[is.na(data$bishop_pub) == TRUE] <- 0
 
 ```
 
-
+Lexis Nexis
 ```{r}
-#write.csv(data, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/data_bishop_account.csv", row.names = FALSE)
-
-data <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/data_bishop_account.csv")
-#some schools were coded is no affiliation in 1990 but catholic in 2017,so this is how we identify catholic schools
-
-#Now we need Catholic Insitutions only
-
-cath_unitids <- data[data$RELAFFIL == "Roman Catholic", "UNITID" ]
-
-cath_inst <- data %>% filter(UNITID %in% cath_unitids)
-
-cath_inst %>% group_by(YEAR) %>% summarise(n = n())
-
-
-
-
-
-
-
-```
-
-
-# Percent Change TOTAL Enrollment
-```{r}
-cath_inst$EFTOTLT_1 <- 0
-cath_inst$EFTOTLM_1 <- 0
-cath_inst$EFHISPT_1 <- 0
-cath_inst$bishop_pub_1 <- 0
-
-cath_inst$EFTOTLT_2 <- 0
-cath_inst$EFTOTLM_2 <- 0
-cath_inst$EFHISPT_2 <- 0
-cath_inst$bishop_pub_2 <- 0
-
-cath_inst$bishop_pub_3 <- 0
-for(k in 2:length(unique(cath_inst$YEAR))){ 
-  
-  k <- unique(cath_inst$YEAR)[k]
-    
-    for (j in 1:length(unique(cath_inst$LINE))){
-    
-      j <- unique(cath_inst$LINE)[j]
-
-      for (i in 1:length(unique(cath_inst$UNITID))){
-      
-        i <- unique(cath_inst$UNITID)[i]
-   
-  cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLT_1"] <-
-      cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "EFTOTLT"]
-
-  cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLM_1"] <-
-      cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "EFTOTLM"]
- 
-  cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFHISPT_1"] <-
-      cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "EFHISPT"]
-  
-  cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "bishop_pub_1"] <-
-      cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "bishop_pub"]  
-
-  
-  
-      }
-    }
-} 
-
-for(l in 3:length(unique(cath_inst$YEAR))){ 
-  
-  l <- unique(cath_inst$YEAR)[l]
-    
-    for (j in 1:length(unique(cath_inst$LINE))){
-    
-      j <- unique(cath_inst$LINE)[j]
-
-      for (i in 1:length(unique(cath_inst$UNITID))){
-      
-        i <- unique(cath_inst$UNITID)[i]
-   
-
-  cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == l, "EFTOTLT_2"] <-
-      cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == l-2, "EFTOTLT"]
-  
-  cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == l, "EFTOTLM_2"] <-
-      cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == l-2, "EFTOTLM"]
- 
-  cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == l, "EFHISPT_2"] <-
-      cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == l-2, "EFHISPT"]
- 
-   cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == l, "bishop_pub_2"] <-
-      cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == l-2, "bishop_pub"]
-  
-  
-      }
-    }
-  } 
-
-for(m in 4:length(unique(cath_inst$YEAR))){ 
-  
-  m <- unique(cath_inst$YEAR)[m]
-    
-    for (j in 1:length(unique(cath_inst$LINE))){
-    
-      j <- unique(cath_inst$LINE)[j]
-
-      for (i in 1:length(unique(cath_inst$UNITID))){
-      
-        i <- unique(cath_inst$UNITID)[i]
-
- 
-   cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == m, "bishop_pub_3"] <-
-      cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == m-3, "bishop_pub"]
-  
-  
-      }
-    }
-  } 
-
-
-
-
-
-
-
-
-
-cath_inst[cath_inst$YEAR == 1990, "EFTOTLT_1"] <- NA
-cath_inst[cath_inst$YEAR == 1990, "EFTOTLM_1"] <- NA
-cath_inst[cath_inst$YEAR == 1990, "EFHISPT_1"] <- NA
-cath_inst[cath_inst$YEAR == 1990, "bishop_pub_1"] <- NA
-cath_inst[cath_inst$YEAR == 1990 | cath_inst$YEAR == 1991, "EFTOTLT_2"] <- NA
-cath_inst[cath_inst$YEAR == 1990 | cath_inst$YEAR == 1991, "EFTOTLM_2"] <- NA
-cath_inst[cath_inst$YEAR == 1990 | cath_inst$YEAR == 1991, "EFHISPT_2"] <- NA
-cath_inst[cath_inst$YEAR == 1990 | cath_inst$YEAR == 1991, "bishop_pub_2"] <- NA
-cath_inst[cath_inst$YEAR == 1990 | cath_inst$YEAR == 1991 | cath_inst$YEAR == 1992, "bishop_pub_3"] <- NA
-
-cath_inst$bishop_pub_sum_3 <- cath_inst$bishop_pub_1 + cath_inst$bishop_pub_2 + cath_inst$bishop_pub_3
-
-
-```
-  
-
-
-
-
-
-```{r}
-arch <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/raw_data/archdioceses-nexus.csv", header = FALSE)
-dioceses<- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/raw_data/dioceses-nexus.csv", header = FALSE)
+arch <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/raw_data/archdioceses-nexis.csv", header = FALSE)
+dioceses<- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/raw_data/dioceses-nexis.csv", header = FALSE)
 
 
 arch <- arch %>% select(V2, V3)
 
 colnames(arch)[colnames(arch)== "V2" ] <- "dioceses"
-colnames(arch)[colnames(arch)== "V3" ] <- "nexus"
+colnames(arch)[colnames(arch)== "V3" ] <- "nexis"
 
 dioceses <- dioceses %>% select(V1, V2)
 
 colnames(dioceses)[colnames(dioceses)== "V1" ] <- "dioceses"
-colnames(dioceses)[colnames(dioceses)== "V2" ] <- "nexus"
+colnames(dioceses)[colnames(dioceses)== "V2" ] <- "nexis"
 
 
-nexus <- rbind(arch, dioceses)
+nexis <- rbind(arch, dioceses)
 
-nexus$dioceses <- as.character(nexus$dioceses)
-
-
-nexus <- nexus %>% separate(dioceses,c("dioceses", "year"),  sep = "_")
+nexis$dioceses <- as.character(nexis$dioceses)
 
 
-
-
-cath_inst <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_inst.csv")
+nexis <- nexis %>% separate(dioceses,c("dioceses", "year"),  sep = "_")
 
 
 
+data$Dioceses <- as.character(data$Dioceses)
 
-cath_inst$Dioceses <- as.character(cath_inst$Dioceses)
-
-cath_inst$Dioceses[cath_inst$Dioceses == "St. Paul &amp; Minneapolis"] <- "St. Paul and Minneapolis"
+data$Dioceses[data$Dioceses == "St. Paul &amp; Minneapolis"] <- "St. Paul and Minneapolis"
 
 
-missing <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/raw_data/missing-nexus.csv")
+missing <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/raw_data/missing-nexis.csv")
 
-nexus <- rbind(nexus, missing)
+nexis <- rbind(nexis, missing)
 
-#write.csv(nexus, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/nexus.csv")
-
+#write.csv(nexis, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/nexis.csv")
+nexis <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/nexis.csv")
 #check that dioceses match
-not_in_cath <- cath_inst %>% select(Dioceses) %>% filter(!(Dioceses %in% nexus$dioceses) == TRUE)
+not_in_cath <- data %>% select(Dioceses) %>% filter(!(Dioceses %in% nexis$dioceses) == TRUE)
 not_in_cath <- unique(not_in_cath)
 
 
-cath_inst <- merge(cath_inst, nexus, by.x = c("YEAR", "Dioceses"), by.y = c("year", "dioceses"), all.x = TRUE)
-
-
-names(cath_inst)[names(cath_inst) == "nexus"] <- "nexis"
-
-
+data <- merge(data, nexis, by.x = c("YEAR", "Dioceses"), by.y = c("year", "dioceses"), all.x = TRUE)
 
 ```
 
+
+
+
+
+
+# Percent Change TOTAL Enrollment
 ```{r}
-cath_inst$nexis_1 <- 0
-cath_inst$nexis_2 <- 0
-cath_inst$nexis_3 <- 0
+data$EFTOTLT_1 <- 0
+data$EFTOTLM_1 <- 0
+data$EFHISPT_1 <- 0
 
-for(k in 2:length(unique(cath_inst$YEAR))){ 
+data$bishop_pub_1 <- 0
+data$bishop_pub_2 <- 0
+data$bishop_pub_3 <- 0
+
+data$EFTOTLT_2 <- 0
+data$EFTOTLM_2 <- 0
+data$EFHISPT_2 <- 0
+
+data$EFTOTLT_3 <- 0
+data$EFTOTLM_3 <- 0
+data$EFHISPT_3 <- 0
+
+for(k in 2:length(unique(data$YEAR))){ 
   
-  k <- unique(cath_inst$YEAR)[k]
+  k <- unique(data$YEAR)[k]
     
-    for (j in 1:length(unique(cath_inst$LINE))){
-    
-      j <- unique(cath_inst$LINE)[j]
+    for (j in 1:length(unique(data$LINE))){
 
-      for (i in 1:length(unique(cath_inst$UNITID))){
+      j <- unique(data$LINE)[j]
+
+      for (i in 1:length(unique(data$UNITID))){
       
-        i <- unique(cath_inst$UNITID)[i]
-  cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "nexis_1"] <-
-      cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k-1, "nexis"]  
+        i <- unique(data$UNITID)[i]
+   try(
+  data[data$UNITID == i & data$LINE == j & data$YEAR == k, "EFTOTLT_1"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == k-1, "EFTOTLT"])
+  try(
+  data[data$UNITID == i & data$LINE == j & data$YEAR == k, "EFTOTLM_1"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == k-1, "EFTOTLM"])
+ try(
+  data[data$UNITID == i & data$LINE == j & data$YEAR == k, "EFHISPT_1"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == k-1, "EFHISPT"])
+ try( 
+  data[data$UNITID == i & data$LINE == j & data$YEAR == k, "bishop_pub_1"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == k-1, "bishop_pub"]  )
 
       }
     }
 } 
 
-
-for(l in 3:length(unique(cath_inst$YEAR))){ 
+for(l in 3:length(unique(data$YEAR))){ 
   
-  l <- unique(cath_inst$YEAR)[l]
+  l <- unique(data$YEAR)[l]
     
-    for (j in 1:length(unique(cath_inst$LINE))){
+    for (j in 1:length(unique(data$LINE))){
     
-      j <- unique(cath_inst$LINE)[j]
+      j <- unique(data$LINE)[j]
 
-      for (i in 1:length(unique(cath_inst$UNITID))){
+      for (i in 1:length(unique(data$UNITID))){
       
-        i <- unique(cath_inst$UNITID)[i]
-  
+        i <- unique(data$UNITID)[i]
+   
+try(
+  data[data$UNITID == i & data$LINE == j & data$YEAR == l, "EFTOTLT_2"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == l-2, "EFTOTLT"]
+  )
+try(
+  data[data$UNITID == i & data$LINE == j & data$YEAR == l, "EFTOTLM_2"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == l-2, "EFTOTLM"])
+ try(
+  data[data$UNITID == i & data$LINE == j & data$YEAR == l, "EFHISPT_2"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == l-2, "EFHISPT"])
+try(
  
-   cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == l, "nexis_2"] <-
-      cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == l-2, "nexis"]
+   data[data$UNITID == i & data$LINE == j & data$YEAR == l, "bishop_pub_2"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == l-2, "bishop_pub"])
   
   
       }
     }
   } 
 
-for(m in 4:length(unique(cath_inst$YEAR))){ 
+for(m in 4:length(unique(data$YEAR))){ 
   
-  m <- unique(cath_inst$YEAR)[m]
+  m <- unique(data$YEAR)[m]
     
-    for (j in 1:length(unique(cath_inst$LINE))){
+    for (j in 1:length(unique(data$LINE))){
     
-      j <- unique(cath_inst$LINE)[j]
+      j <- unique(data$LINE)[j]
 
-      for (i in 1:length(unique(cath_inst$UNITID))){
+      for (i in 1:length(unique(data$UNITID))){
       
-        i <- unique(cath_inst$UNITID)[i]
-
- 
-   cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == m, "nexis_3"] <-
-      cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == m-3, "nexis"]
+        i <- unique(data$UNITID)[i]
+try(
+  data[data$UNITID == i & data$LINE == j & data$YEAR == m, "EFTOTLT_3"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == m-3, "EFTOTLT"]
+  )
+try(
+  data[data$UNITID == i & data$LINE == j & data$YEAR == m, "EFTOTLM_3"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == m-3, "EFTOTLM"])
+ try(
+  data[data$UNITID == i & data$LINE == j & data$YEAR == m, "EFHISPT_3"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == m-3, "EFHISPT"])
+ try(
+   data[data$UNITID == i & data$LINE == j & data$YEAR == m, "bishop_pub_3"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == m-3, "bishop_pub"]
+ )
   
+      }
+    }
+  } 
+
+
+
+
+
+
+
+
+
+data[data$YEAR == 1990, "EFTOTLT_1"] <- NA
+data[data$YEAR == 1990, "EFTOTLM_1"] <- NA
+data[data$YEAR == 1990, "EFHISPT_1"] <- NA
+data[data$YEAR == 1990, "bishop_pub_1"] <- NA
+data[data$YEAR == 1990 | data$YEAR == 1991, "EFTOTLT_2"] <- NA
+data[data$YEAR == 1990 | data$YEAR == 1991, "EFTOTLM_2"] <- NA
+data[data$YEAR == 1990 | data$YEAR == 1991, "EFHISPT_2"] <- NA
+data[data$YEAR == 1990 | data$YEAR == 1991, "bishop_pub_2"] <- NA
+data[data$YEAR == 1990 | data$YEAR == 1991| data$YEAR == 1992, "EFTOTLT_3"] <- NA
+data[data$YEAR == 1990 | data$YEAR == 1991| data$YEAR == 1992, "EFTOTLM_3"] <- NA
+data[data$YEAR == 1990 | data$YEAR == 1991| data$YEAR == 1992, "EFHISPT_3"] <- NA
+data[data$YEAR == 1990 | data$YEAR == 1991 | data$YEAR == 1992, "bishop_pub_3"] <- NA
+
+data$bishop_pub_sum_3 <- data$bishop_pub_1 + data$bishop_pub_2 + data$bishop_pub_3
+
+
+```
+  
+
+
+
+
+
+`
+
+```{r}
+data$nexis_1 <- 0
+data$nexis_2 <- 0
+data$nexis_3 <- 0
+
+for(k in 2:length(unique(data$YEAR))){ 
+  
+  k <- unique(data$YEAR)[k]
+    
+    for (j in 1:length(unique(data$LINE))){
+    
+      j <- unique(data$LINE)[j]
+
+      for (i in 1:length(unique(data$UNITID))){
+      
+        i <- unique(data$UNITID)[i]
+        try(
+  data[data$UNITID == i & data$LINE == j & data$YEAR == k, "nexis_1"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == k-1, "nexis"]  
+        )
+
+      }
+    }
+} 
+
+
+for(l in 3:length(unique(data$YEAR))){ 
+  
+  l <- unique(data$YEAR)[l]
+    
+    for (j in 1:length(unique(data$LINE))){
+    
+      j <- unique(data$LINE)[j]
+
+      for (i in 1:length(unique(data$UNITID))){
+      
+        i <- unique(data$UNITID)[i]
+  
+ try(
+   data[data$UNITID == i & data$LINE == j & data$YEAR == l, "nexis_2"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == l-2, "nexis"]
+ )
+  
+      }
+    }
+  } 
+
+for(m in 4:length(unique(data$YEAR))){ 
+  
+  m <- unique(data$YEAR)[m]
+    
+    for (j in 1:length(unique(data$LINE))){
+    
+      j <- unique(data$LINE)[j]
+
+      for (i in 1:length(unique(data$UNITID))){
+      
+        i <- unique(data$UNITID)[i]
+
+ try(
+   data[data$UNITID == i & data$LINE == j & data$YEAR == m, "nexis_3"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == m-3, "nexis"]
+ )
   
       }
     }
 } 
 
-cath_inst[cath_inst$YEAR == 1990, "nexis_1"] <- NA
-cath_inst[cath_inst$YEAR == 1990 | cath_inst$YEAR == 1991, "nexis_2"] <- NA
-cath_inst[cath_inst$YEAR == 1990 | cath_inst$YEAR == 1991 | cath_inst$YEAR == 1992, "nexis_3"] <- NA
+data[data$YEAR == 1990, "nexis_1"] <- NA
+data[data$YEAR == 1990 | data$YEAR == 1991, "nexis_2"] <- NA
+data[data$YEAR == 1990 | data$YEAR == 1991 | data$YEAR == 1992, "nexis_3"] <- NA
 
-cath_inst$nexis_sum_3 <- cath_inst$nexis_1 + cath_inst$nexis_2 + cath_inst$nexis_3
+data$nexis_sum_3 <- data$nexis_1 + data$nexis_2 + data$nexis_3
 
-#write.csv(cath_inst, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_inst.csv", row.names = FALSE)
-
-cath_inst <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_inst.csv")
 
 ```
 
 ```{r}
 # Three Year Percent Change TOTAL Enrollment
 
-cath_inst$EFTOTLT_3_change <- 0
-for(k in 4:length(unique(cath_inst$YEAR))){ 
+data$EFTOTLT_3_change <- 0
+
+for(k in 4:length(unique(data$YEAR))){ 
   
-  k <- unique(cath_inst$YEAR)[k]
-  for (j in 1:length(unique(cath_inst$LINE))){
+  k <- unique(data$YEAR)[k]
+  for (j in 1:length(unique(data$LINE))){
     
-    j <- unique(cath_inst$LINE)[j]
-    for (i in 1:length(unique(cath_inst$UNITID))){
+    j <- unique(data$LINE)[j]
+    for (i in 1:length(unique(data$UNITID))){
       
-      i <- unique(cath_inst$UNITID)[i]
-   
-      
+      i <- unique(data$UNITID)[i]
+    try(
       
   # if 2016 == 0     
-if (cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-3, "EFTOTLT"] == 0){
+if (data[data$UNITID== i & data$LINE == j & data$YEAR == k-3, "EFTOTLT"] == 0){
   
   #and 2017 ==0, then percent change = 0
-  if(cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLT"] == 0){
+  if(data[data$UNITID== i & data$LINE == j & data$YEAR == k, "EFTOTLT"] == 0){
     
-    cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLT_3_change"] <- 0
+    data[data$UNITID == i & data$LINE == j & data$YEAR == k, "EFTOTLT_3_change"] <- 0
     
     # and 2017 = n, then percent change = 100 (so that we do not have major outliers)
   } else {
-    cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLT_3_change"] <- 100
+    data[data$UNITID == i & data$LINE == j & data$YEAR == k, "EFTOTLT_3_change"] <- 100
  
   }
   
   #else, use typical percent chaneg function
 } else {
   
-       m <- ((cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLT"] -  cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-3, "EFTOTLT"])
-   /cath_inst[cath_inst$UNITID== i & cath_inst$LINE == j & cath_inst$YEAR == k-3, "EFTOTLT"])*100
+       m <- ((data[data$UNITID== i & data$LINE == j & data$YEAR == k, "EFTOTLT"] -  data[data$UNITID== i & data$LINE == j & data$YEAR == k-3, "EFTOTLT"])
+   /data[data$UNITID== i & data$LINE == j & data$YEAR == k-3, "EFTOTLT"])*100
   
-  cath_inst[cath_inst$UNITID == i & cath_inst$LINE == j & cath_inst$YEAR == k, "EFTOTLT_3_change"] <- m
-  
-      }
+  data[data$UNITID == i & data$LINE == j & data$YEAR == k, "EFTOTLT_3_change"] <- m
+    
+}
+)
     }
   }
 } 
-cath_inst[cath_inst$YEAR == 1990, "EFTOTLT_3_change"] <- NA
-cath_inst[cath_inst$YEAR == 1991, "EFTOTLT_3_change"] <- NA
-cath_inst[cath_inst$YEAR == 1992, "EFTOTLT_3_change"] <- NA
+data[data$YEAR == 1990, "EFTOTLT_3_change"] <- NA
+data[data$YEAR == 1991, "EFTOTLT_3_change"] <- NA
+data[data$YEAR == 1992, "EFTOTLT_3_change"] <- NA
 
-#write.csv(cath_inst, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_inst.csv", row.names = FALSE)
+#write.csv(data, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/final_dataset.csv", row.names = FALSE)
 
 
 ```
