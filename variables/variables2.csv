@@ -1,0 +1,114 @@
+varnumber,table,varname,codevalue,valuelabel
+10086,HD,SECTOR,0,"Administrative Unit"
+10086,HD,SECTOR,1,"Public, 4-year or above"
+10086,HD,SECTOR,2,"Private not-for-profit, 4-year or above"
+10086,HD,SECTOR,3,"Private for-profit, 4-year or above"
+10086,HD,SECTOR,4,"Public, 2-year"
+10086,HD,SECTOR,5,"Private not-for-profit, 2-year"
+10086,HD,SECTOR,6,"Private for-profit, 2-year"
+10086,HD,SECTOR,7,"Public, less-than 2-year"
+10086,HD,SECTOR,8,"Private not-for-profit, less-than 2-year"
+10086,HD,SECTOR,9,"Private for-profit, less-than 2-year"
+10086,HD,SECTOR,99,"Sector unknown (not active)"
+10126,HD,DEGGRANT,1,Degree-granting
+10126,HD,DEGGRANT,2,"Nondegree-granting, primarily postsecondary"
+10126,HD,DEGGRANT,-3,{Not available}
+10126,HD,DEGGRANT,3,"Nondegree-granting, not primarily postsecondary"
+10126,HD,DEGGRANT,4,Not an educational entity
+10171,HD,CARNEGIE,11,Doctoral/Research Universities--Extensive
+10171,HD,CARNEGIE,12,Doctoral/Research Universities--Intensive
+10171,HD,CARNEGIE,13,Doctoral/Research Universities--Extensive
+10171,HD,CARNEGIE,14,Doctoral/Research Universities--Intensive
+10171,HD,CARNEGIE,15,Doctoral/Research Universities--Extensive
+10171,HD,CARNEGIE,16,Doctoral/Research Universities--Intensive
+10171,HD,CARNEGIE,21,Masters Colleges and Universities I
+10171,HD,CARNEGIE,22,Masters Colleges and Universities II
+10171,HD,CARNEGIE,31,Baccalaureate Colleges--Liberal Arts
+10171,HD,CARNEGIE,32,Baccalaureate Colleges--General
+10171,HD,CARNEGIE,33,Baccalaureate/Associates Colleges
+10171,HD,CARNEGIE,40,Associates Colleges
+10171,HD,CARNEGIE,51,Theological seminaries and other specialized faith-related institutions
+10171,HD,CARNEGIE,52,Medical schools and medical centers
+10171,HD,CARNEGIE,53,Other separate health profession schools
+10171,HD,CARNEGIE,54,Schools of engineering and technology
+10171,HD,CARNEGIE,55,Schools of business and management
+10171,HD,CARNEGIE,56,"Schools of art, music, and design"
+10171,HD,CARNEGIE,57,Schools of law
+10171,HD,CARNEGIE,58,Teachers colleges
+10171,HD,CARNEGIE,59,Other specialized institutions
+10171,HD,CARNEGIE,60,Tribal colleges
+10171,HD,CARNEGIE,-3,{Item not available}
+10391,IC,CNTLAFFI,1,Public
+10391,IC,CNTLAFFI,2,Private for-profit
+10391,IC,CNTLAFFI,3,Private not-for-profit (no religious affiliation)
+10391,IC,CNTLAFFI,4,Private not-for-profit (religious affiliation)
+10391,IC,CNTLAFFI,-1,NA
+10406,IC,RELAFFIL,-2,Not applicable
+10406,IC,RELAFFIL,22,American Evangelical Lutheran Church
+10406,IC,RELAFFIL,24,African Methodist Episcopal Zion Church
+10406,IC,RELAFFIL,27,Assemblies of God Church
+10406,IC,RELAFFIL,28,Brethren Church
+10406,IC,RELAFFIL,30,Roman Catholic
+10406,IC,RELAFFIL,33,Wisconsin Evangelical Lutheran Synod
+10406,IC,RELAFFIL,34,Christ and Missionary Alliance Church
+10406,IC,RELAFFIL,35,Christian Reformed Church
+10406,IC,RELAFFIL,36,Evangelical Congregational Church
+10406,IC,RELAFFIL,37,Evangelical Covenant Church of America
+10406,IC,RELAFFIL,38,Evangelical Free Church of America
+10406,IC,RELAFFIL,39,Evangelical Lutheran Church
+10406,IC,RELAFFIL,40,International United Pentecostal Church
+10406,IC,RELAFFIL,41,Free Will Baptist Church
+10406,IC,RELAFFIL,42,Interdenominational
+10406,IC,RELAFFIL,43,Mennonite Brethren Church
+10406,IC,RELAFFIL,44,Moravian Church
+10406,IC,RELAFFIL,45,North American Baptist
+10406,IC,RELAFFIL,46,American Lutheran & Luth Ch in America
+10406,IC,RELAFFIL,47,Pentecostal Holiness Church
+10406,IC,RELAFFIL,48,Christian Churches and Churches of Christ
+10406,IC,RELAFFIL,49,Reformed Church in America
+10406,IC,RELAFFIL,50,"Episcopal Church, Reformed"
+10406,IC,RELAFFIL,51,African Methodist Episcopal
+10406,IC,RELAFFIL,52,American Baptist
+10406,IC,RELAFFIL,54,Baptist
+10406,IC,RELAFFIL,55,Christian Methodist Episcopal
+10406,IC,RELAFFIL,57,Church of God
+10406,IC,RELAFFIL,58,Church of Brethren
+10406,IC,RELAFFIL,59,Church of the Nazarene
+10406,IC,RELAFFIL,60,Cumberland Presbyterian
+10406,IC,RELAFFIL,61,Christian Church (Disciples of Christ)
+10406,IC,RELAFFIL,64,Free Methodist
+10406,IC,RELAFFIL,65,Friends
+10406,IC,RELAFFIL,66,Presbyterian Church (USA)
+10406,IC,RELAFFIL,67,Lutheran Church in America
+10406,IC,RELAFFIL,68,Lutheran Church - Missouri Synod
+10406,IC,RELAFFIL,69,Mennonite Church
+10406,IC,RELAFFIL,70,General Conference Mennonite Church
+10406,IC,RELAFFIL,71,United Methodist
+10406,IC,RELAFFIL,73,Protestant Episcopal
+10406,IC,RELAFFIL,74,Churches of Christ
+10406,IC,RELAFFIL,75,Southern Baptist
+10406,IC,RELAFFIL,76,United Church of Christ
+10406,IC,RELAFFIL,77,"Protestant, not specified"
+10406,IC,RELAFFIL,78,Multiple Protestant Denomination
+10406,IC,RELAFFIL,79,Other Protestant
+10406,IC,RELAFFIL,80,Jewish
+10406,IC,RELAFFIL,81,Reformed Presbyterian Church
+10406,IC,RELAFFIL,83,Sevent Day Adventists Church
+10406,IC,RELAFFIL,84,United Brethren Church
+10406,IC,RELAFFIL,87,Missionary Church Inc
+10406,IC,RELAFFIL,88,Undenominational
+10406,IC,RELAFFIL,89,Wesleyan
+10406,IC,RELAFFIL,91,Greek Orthodox
+10406,IC,RELAFFIL,92,Russian Orthodox
+10406,IC,RELAFFIL,93,Unitarian Universalist
+10406,IC,RELAFFIL,94,Latter Day Saints (Mormon Church)
+10406,IC,RELAFFIL,95,Seventh Day Adventist
+10406,IC,RELAFFIL,97,The Presbyterian Church in America
+10406,IC,RELAFFIL,98,Salvation Army
+10406,IC,RELAFFIL,99,Other (none of the above)
+10406,IC,RELAFFIL,100,Original Free Will Baptist
+10406,IC,RELAFFIL,102,Evangelical Christian
+10406,IC,RELAFFIL,103,Presbyterian
+10406,IC,RELAFFIL,105,General Baptist
+10406,IC,RELAFFIL,106,Muslim
+10406,IC,RELAFFIL,107,Plymouth Brethren

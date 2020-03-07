@@ -1,0 +1,1838 @@
+---
+title: "dataset_FINAL"
+author: "Sarah McDonald"
+date: "November 12, 2019"
+output: html_document
+---
+# Set Up
+For the data acquisition, four the packages below are needed. Additionally, we load a CSV with the variables needed from the IPEDS tables.
+```{r, warning= FALSE, message= FALSE}
+library(gtools)
+library(dplyr)
+library(stringr) #to use str_trim
+library(stringi)
+library(tidyr)
+library(sf)
+library(ggplot2)
+library(maptools)
+library(plyr)
+library(zoo)
+library(rvest)
+library(readxl)
+variables <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/variables/ipeds_variables.csv")
+```
+
+We create a function called "Upper_Converter" that changes all strings to uppercase. Then, we also create a function call get "IPEDSData" that allows acquisition of the IPEDS data from the IPEDS website. When the data is read in, all variable names are made uppercase, and a year column is added to each dataset.
+```{r, warning = FALSE, message = FALSE}
+
+Upper_Converter <- function(strings){
+  toupper(str_trim(iconv(strings, "ASCII", "UTF-8", sub="")))
+}
+
+getIPEDSData <- function(year, survey_file, capital_survey_file, extra = "", capital_extra = ""){
+  dataset <- NULL
+  temp <- tempfile()
+  download.file(paste("https://nces.ed.gov/ipeds/datacenter/data/",  capital_survey_file, year, capital_extra, ".zip", sep = ""), temp)
+  dataset <- read.csv(unz(temp, paste(survey_file, year, extra, ".csv", sep = "")))
+  unlink(temp)
+  names(dataset) <- toupper(names(dataset))
+  dataset <- dataset %>% mutate_if(is.factor, Upper_Converter)
+  dataset$YEAR <- year
+  dataset
+}
+```
+
+# Institutional Characteristics - Directory information
+
+We use the loops below to acquire directory information from IPEDS for 1995 - 2017. Directory information is available from 1986. We use different loops below as naming conventions for the various tables change prior to 2002. We will need to come up with CBSA and Lat/Long for missing values in earlier years
+```{r, warning = FALSE, message = FALSE}
+# 2002 - 2017
+survey_file <- "hd"
+capital_survey_file <- "HD"
+extra <- ""
+capital_extra <- ""
+
+for (year in 2002:2017){
+  assign(paste(survey_file, year, extra, sep = ""), 
+    getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+
+# 2000 - 2001
+survey_file <- "fa"
+capital_survey_file <- "FA"
+extra <- "hd"
+capital_extra <- "HD"
+
+for (year in 2000:2001){
+  assign(paste(survey_file, year, extra, sep = ""), 
+    getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+
+# 1999
+survey_file <- "ic"
+capital_survey_file <- "IC"
+extra <- "_hd"
+capital_extra <- "_HD"
+
+for (year in 99){
+  assign(paste(survey_file, year, extra, sep = ""), 
+    getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+ic99_hd$YEAR <- "1999"
+
+# 1998
+survey_file <- "ic"
+capital_survey_file <- "IC"
+extra <- "hdac"
+capital_extra <- "HDAC"
+
+for (year in 98){
+  assign(paste(survey_file, year, extra, sep = ""), 
+    getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+ic98hdac$YEAR <- "1998"
+
+# 1997
+survey_file <- "ic"
+capital_survey_file <- "ic"
+extra <- "_hdr"
+capital_extra <- "_HDR"
+
+for (year in 9798){
+  assign(paste(survey_file, year, extra, sep = ""), 
+    getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+ic9798_hdr$YEAR <- "1997"
+
+# 1995 - 1996
+survey_file <- "ic"
+capital_survey_file <- "ic"
+extra <- "_a"
+capital_extra <- "_A"
+
+for (year in c(9596,9697)){
+  assign(paste(survey_file, year, extra, sep = ""), 
+    getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+ic9596_a$YEAR <- "1995"
+ic9697_a$YEAR <- "1996"
+
+survey_file <- "ic"
+capital_survey_file <- "ic"
+extra <- "_a"
+capital_extra <- "_A"
+
+for (year in c(1992:1994)){
+   assign(paste(survey_file, year, extra, sep = ""), 
+    getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+
+ic1992_a$YEAR <- "1992"
+ic1993_a$YEAR <- "1993"
+ic1994_a$YEAR <- "1994"
+
+survey_file <- "ic"
+capital_survey_file <- "ic"
+extra <- "_hdr"
+capital_extra <- "_HDR"
+
+for (year in c(1991)){
+   assign(paste(survey_file, year, extra, sep = ""), 
+    getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+
+ic1991_hdr$YEAR <- "1991"
+
+
+survey_file <- "ic"
+capital_survey_file <- "IC"
+extra <- "hd"
+capital_extra <- "HD"
+
+for (year in c(90)){
+   assign(paste(survey_file, year, extra, sep = ""), 
+    getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+
+ic90hd$YEAR <- "1990"
+```
+
+We then use the following code to select our variables of interest from each directory information table and merge the tables for each year into one large table.
+```{r, warning = FALSE, message=FALSE}
+HD <- mget(ls(pattern = c("(hd\\d{4})|(ic\\d+(hd\\w?\\w?|_\\w+))|(fa.+)")))
+
+levels(variables$Variable.Name) <- c(levels(variables$Variable.Name),"YEAR") 
+variables[nrow(variables) + 1,] = list(Table= factor("HD"),Variable.Number= 9999, Variable.Name= factor("YEAR"))
+HD_var <- variables[variables$Table == "HD", 3]
+
+HD <- lapply(HD, function(x) x[(names(x)) %in% HD_var])
+HD_df <- do.call("smartbind", HD)
+```
+
+
+# Fall Enrollment - Race/ethnicity, gender, attendance status, and level of student
+We use the loops below to acquire the fall enrollment data (Race/Ethnicty/Gender) from IPEDS for 2000 - 2017. In 2008, the variable names changed from the old system to a new system, so I choose the new naming system. We changed the variable names in the tables prior to 2008 to the corresponding variable name that matches the new system. *I have code that can acquire 1980, 1986-1999 if needed.*
+
+```{r, warning = FALSE, message = FALSE}
+survey_file <- "ef"
+capital_survey_file <- "EF"
+extra <- "a"
+capital_extra <- "A"
+
+for (year in 2000:2017){
+  assign(paste(survey_file, year, extra, sep = ""), 
+         getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+
+#fix 2000
+#2000 total men
+colnames(ef2000a)[colnames(ef2000a)=="EFRACE15"] <- "EFTOTLM"
+#2000 total women
+colnames(ef2000a)[colnames(ef2000a)=="EFRACE16"] <- "EFTOTLW"
+#total men and women
+ef2000a$EFTOTLT <- ef2000a$EFTOTLM + ef2000a$EFTOTLW
+
+
+#2000 total Hispanic men
+colnames(ef2000a)[colnames(ef2000a)=="EFRACE09"] <- "EFHISPM"
+colnames(ef2000a)[colnames(ef2000a)=="EFRACE10"] <- "EFHISPW"
+
+#total hispanic men and women
+ef2000a$EFHISPT <- ef2000a$EFHISPW + ef2000a$EFHISPM
+
+
+#fix 2001
+#2001 total men
+colnames(ef2001a)[colnames(ef2001a)=="EFRACE15"] <- "EFTOTLM"
+#2001 total women
+colnames(ef2001a)[colnames(ef2001a)=="EFRACE16"] <- "EFTOTLW"
+#total men and women
+ef2001a$EFTOTLT <- ef2001a$EFTOTLM + ef2001a$EFTOTLW
+
+#2001 total Hispanic 
+colnames(ef2001a)[colnames(ef2001a)=="EFRACE09"] <- "EFHISPM"
+colnames(ef2001a)[colnames(ef2001a)=="EFRACE10"] <- "EFHISPW"
+
+#total hispanic men and women
+ef2001a$EFHISPT <- ef2001a$EFHISPW + ef2001a$EFHISPM
+
+#fix 2002
+#grand total
+colnames(ef2002a)[colnames(ef2002a)=="EFRACE24"] <- "EFTOTLT"
+#total men
+colnames(ef2002a)[colnames(ef2002a)=="EFRACE15"] <- "EFTOTLM"
+# total hispanic men and women
+colnames(ef2002a)[colnames(ef2002a)=="EFRACE21"] <- "EFHISPT"
+
+#fix 2003
+#grand total
+colnames(ef2003a)[colnames(ef2003a)=="EFRACE24"] <- "EFTOTLT"
+#total men
+colnames(ef2003a)[colnames(ef2003a)=="EFRACE15"] <- "EFTOTLM"
+# total hispanic men and women
+colnames(ef2003a)[colnames(ef2003a)=="EFRACE21"] <- "EFHISPT"
+
+#fix 2004
+#grand total
+colnames(ef2004a)[colnames(ef2004a)=="EFRACE24"] <- "EFTOTLT"
+#total men
+colnames(ef2004a)[colnames(ef2004a)=="EFRACE15"] <- "EFTOTLM"
+# total hispanic men and women
+colnames(ef2004a)[colnames(ef2004a)=="EFRACE21"] <- "EFHISPT"
+
+#fix 2005
+#grand total
+colnames(ef2005a)[colnames(ef2005a)=="EFRACE24"] <- "EFTOTLT"
+#total men
+colnames(ef2005a)[colnames(ef2005a)=="EFRACE15"] <- "EFTOTLM"
+# total hispanic men and women
+colnames(ef2005a)[colnames(ef2005a)=="EFRACE21"] <- "EFHISPT"
+
+#fix 2006
+#grand total
+colnames(ef2006a)[colnames(ef2006a)=="EFRACE24"] <- "EFTOTLT"
+#total men
+colnames(ef2006a)[colnames(ef2006a)=="EFRACE15"] <- "EFTOTLM"
+# total hispanic men and women
+colnames(ef2006a)[colnames(ef2006a)=="EFRACE21"] <- "EFHISPT"
+
+#fix 2007
+#grand total
+colnames(ef2007a)[colnames(ef2007a)=="EFRACE24"] <- "EFTOTLT"
+#total men
+colnames(ef2007a)[colnames(ef2007a)=="EFRACE15"] <- "EFTOTLM"
+# total hispanic men and women
+colnames(ef2007a)[colnames(ef2007a)=="EFRACE21"] <- "EFHISPT"
+
+
+survey_file <- "ef"
+capital_survey_file <- "EF"
+extra <- "_anr"
+capital_extra <- "_ANR"
+
+for (year in 95:99){
+  assign(paste(survey_file, year, extra, sep = ""), 
+         getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+
+for (year in 1994){ 
+ assign(paste(survey_file, year, extra, sep = ""), 
+         getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+
+ef1994_anr$year <- "1994"
+ef95_anr$year <- "1995"
+ef96_anr$year <- "1996"
+ef97_anr$year <- "1997"
+ef98_anr$year <- "1998"
+ef99_anr$year <- "1999"
+
+colnames(ef99_anr)[colnames(ef99_anr)=="EFRACE24"] <- "EFTOTLT"
+colnames(ef99_anr)[colnames(ef99_anr)=="EFRACE15"] <- "EFTOTLM"
+colnames(ef99_anr)[colnames(ef99_anr)=="EFRACE21"] <- "EFHISPT"
+
+colnames(ef99_anr)[colnames(ef99_anr)=="EFRACE24"] <- "EFTOTLT"
+colnames(ef99_anr)[colnames(ef99_anr)=="EFRACE15"] <- "EFTOTLM"
+colnames(ef99_anr)[colnames(ef99_anr)=="EFRACE21"] <- "EFHISPT"
+
+colnames(ef98_anr)[colnames(ef98_anr)=="EFRACE15"] <- "EFTOTLM"
+colnames(ef98_anr)[colnames(ef98_anr)=="EFRACE16"] <- "EFTOTLW"
+ef98_anr$EFTOTLT <- ef98_anr$EFTOTLM + ef98_anr$EFTOTLW
+colnames(ef98_anr)[colnames(ef98_anr)=="EFRACE09"] <- "EFHISPM"
+colnames(ef98_anr)[colnames(ef98_anr)=="EFRACE10"] <- "EFHISPW"
+ef98_anr$EFHISPT <- ef98_anr$EFHISPW + ef98_anr$EFHISPM
+
+colnames(ef97_anr)[colnames(ef97_anr)=="EFRACE15"] <- "EFTOTLM"
+colnames(ef97_anr)[colnames(ef97_anr)=="EFRACE16"] <- "EFTOTLW"
+ef97_anr$EFTOTLT <- ef97_anr$EFTOTLM + ef97_anr$EFTOTLW
+colnames(ef97_anr)[colnames(ef97_anr)=="EFRACE09"] <- "EFHISPM"
+colnames(ef97_anr)[colnames(ef97_anr)=="EFRACE10"] <- "EFHISPW"
+ef97_anr$EFHISPT <- ef97_anr$EFHISPW + ef97_anr$EFHISPM
+
+colnames(ef96_anr)[colnames(ef96_anr)=="EFRACE15"] <- "EFTOTLM"
+colnames(ef96_anr)[colnames(ef96_anr)=="EFRACE16"] <- "EFTOTLW"
+ef96_anr$EFTOTLT <- ef96_anr$EFTOTLM + ef96_anr$EFTOTLW
+colnames(ef96_anr)[colnames(ef96_anr)=="EFRACE09"] <- "EFHISPM"
+colnames(ef96_anr)[colnames(ef96_anr)=="EFRACE10"] <- "EFHISPW"
+ef96_anr$EFHISPT <- ef96_anr$EFHISPW + ef96_anr$EFHISPM
+
+colnames(ef95_anr)[colnames(ef95_anr)=="EFRACE15"] <- "EFTOTLM"
+colnames(ef95_anr)[colnames(ef95_anr)=="EFRACE16"] <- "EFTOTLW"
+ef95_anr$EFTOTLT <- ef95_anr$EFTOTLM + ef95_anr$EFTOTLW
+colnames(ef95_anr)[colnames(ef95_anr)=="EFRACE09"] <- "EFHISPM"
+colnames(ef95_anr)[colnames(ef95_anr)=="EFRACE10"] <- "EFHISPW"
+ef95_anr$EFHISPT <- ef95_anr$EFHISPW + ef95_anr$EFHISPM
+
+colnames(ef1994_anr)[colnames(ef1994_anr)=="EFRACE15"] <- "EFTOTLM"
+colnames(ef1994_anr)[colnames(ef1994_anr)=="EFRACE16"] <- "EFTOTLW"
+ef1994_anr$EFTOTLT <- ef1994_anr$EFTOTLM + ef1994_anr$EFTOTLW
+colnames(ef1994_anr)[colnames(ef1994_anr)=="EFRACE09"] <- "EFHISPM"
+colnames(ef1994_anr)[colnames(ef1994_anr)=="EFRACE10"] <- "EFHISPW"
+ef1994_anr$EFHISPT <- ef1994_anr$EFHISPW + ef1994_anr$EFHISPM
+
+survey_file <- "ef"
+capital_survey_file <- "EF"
+extra <- "_a"
+capital_extra <- "_A"
+
+for (year in 1991:1993){try(
+    assign(paste(survey_file, year, extra, sep = ""), 
+           getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra)))
+}
+
+#this gets 1990
+for (year in 90){
+    assign(paste(survey_file, year, extra, sep = ""), 
+           getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+
+ef90_a$year <- "1990"
+ef1991_a$year <- "1991"
+ef1992_a$year <- "1992"
+ef1993_a$year <- "1993"
+
+colnames(ef1993_a)[colnames(ef1993_a)=="EFRACE15"] <- "EFTOTLM"
+colnames(ef1993_a)[colnames(ef1993_a)=="EFRACE16"] <- "EFTOTLW"
+ef1993_a$EFTOTLT <- ef1993_a$EFTOTLM + ef1993_a$EFTOTLW
+colnames(ef1993_a)[colnames(ef1993_a)=="EFRACE09"] <- "EFHISPM"
+colnames(ef1993_a)[colnames(ef1993_a)=="EFRACE10"] <- "EFHISPW"
+ef1993_a$EFHISPT <- ef1993_a$EFHISPW + ef1993_a$EFHISPM
+
+colnames(ef1992_a)[colnames(ef1992_a)=="EFRACE15"] <- "EFTOTLM"
+colnames(ef1992_a)[colnames(ef1992_a)=="EFRACE16"] <- "EFTOTLW"
+ef1992_a$EFTOTLT <- ef1992_a$EFTOTLM + ef1992_a$EFTOTLW
+colnames(ef1992_a)[colnames(ef1992_a)=="EFRACE09"] <- "EFHISPM"
+colnames(ef1992_a)[colnames(ef1992_a)=="EFRACE10"] <- "EFHISPW"
+ef1992_a$EFHISPT <- ef1992_a$EFHISPW + ef1992_a$EFHISPM
+
+colnames(ef1991_a)[colnames(ef1991_a)=="EFRACE15"] <- "EFTOTLM"
+colnames(ef1991_a)[colnames(ef1991_a)=="EFRACE16"] <- "EFTOTLW"
+ef1991_a$EFTOTLT <- ef1991_a$EFTOTLM + ef1991_a$EFTOTLW
+colnames(ef1991_a)[colnames(ef1991_a)=="EFRACE09"] <- "EFHISPM"
+colnames(ef1991_a)[colnames(ef1991_a)=="EFRACE10"] <- "EFHISPW"
+ef1991_a$EFHISPT <- ef1991_a$EFHISPW + ef1991_a$EFHISPM
+
+colnames(ef90_a)[colnames(ef90_a)=="EFRACE15"] <- "EFTOTLM"
+colnames(ef90_a)[colnames(ef90_a)=="EFRACE16"] <- "EFTOTLW"
+ef90_a$EFTOTLT <- ef90_a$EFTOTLM + ef90_a$EFTOTLW
+colnames(ef90_a)[colnames(ef90_a)=="EFRACE09"] <- "EFHISPM"
+colnames(ef90_a)[colnames(ef90_a)=="EFRACE10"] <- "EFHISPW"
+ef90_a$EFHISPT <- ef90_a$EFHISPW + ef90_a$EFHISPM
+
+```
+
+
+
+We then use the following code to select our variables of interest from each fall enrollment(race/ethnicity/gender) table and merge the tables for each year into one large table. 
+
+```{r, warning = FALSE, message = FALSE}
+#2000-2017 (file is too big)
+EFA <- mget(ls(pattern = c("ef\\d*(a|_)a?\\w?\\w?")))
+
+levels(variables$Variable.Name) <- c(levels(variables$Variable.Name),"YEAR") 
+variables[nrow(variables) + 1,] = list(Table= factor("EF_A"),Variable.Number= 9999, Variable.Name= factor("YEAR"))
+EFA_var <- variables[variables$Table == "EF_A", 3]
+
+# Merge and and only use the columns in our variable list
+
+EFA <- lapply(EFA, function(x) x[(names(x)) %in% EFA_var])
+EFA_df <- do.call("smartbind", EFA)
+
+
+
+EFA_df$LINE <- as.character(EFA_df$LINE)
+
+EFA_df <- EFA_df %>% filter(LINE == "8" | LINE == "22"| LINE == "29")
+
+EFA_df$LINE[EFA_df$LINE == "8"] <- "Undergraduates"
+EFA_df$LINE[EFA_df$LINE == "22"] <- "Undergraduates"
+EFA_df$LINE[EFA_df$LINE == "29"] <- "Total"
+
+detach(package:plyr)    
+library(dplyr)
+
+EFA_df <- EFA_df %>% group_by(UNITID, LINE, YEAR) %>% summarize(EFTOTLM = sum(EFTOTLM, na.rm=TRUE), EFTOTLT = sum(EFTOTLT, na.rm = TRUE), EFHISPT = sum(EFHISPT, na.rm = TRUE))
+
+
+EFA_df$YEAR <- ifelse(nchar(EFA_df$YEAR) != 4, gsub(" ", "", paste("19", EFA_df$YEAR), fixed = TRUE), EFA_df$YEAR)
+
+EFA_df <- EFA_df %>% gather(4:6, key = "Type", value = "Count")
+EFA_df <- EFA_df %>% spread(key = LINE, value = Count)
+EFA_df$Graduate <- EFA_df$Total - EFA_df$Undergraduates
+EFA_df <- EFA_df %>% gather(Total, Undergraduates, Graduate, key = "LINE", value = "Count")
+EFA_df <- EFA_df %>% spread(Type, Count)
+
+```
+
+
+
+
+# Institutional Characteristics - Educational offerings, organization, services and athletic associations
+
+The code below acquires the institutional characteristics variables of interest, specifically religious affiliation for 2000-2017. 
+```{r, warning = FALSE, message = FALSE}
+survey_file <- "ic"
+capital_survey_file <- "IC"
+extra <- ""
+capital_extra <- ""
+
+#2000-2012. Available from 1980
+for (year in 2000:2017){
+    assign(paste(survey_file, year, extra, sep = ""), 
+           getIPEDSData(year, survey_file, capital_survey_file, extra, capital_extra))
+}
+
+```
+
+Then, we made one big data frame.
+```{r, warning = FALSE, message = FALSE}
+IC <- mget(ls(pattern = "^ic\\d{4}$"))
+
+levels(variables$Variable.Name) <- c(levels(variables$Variable.Name),"YEAR") 
+variables[nrow(variables) + 1,] = list(Table= factor("IC"),Variable.Number= 9999, Variable.Name= factor("YEAR"))
+IC_var <- variables[variables$Table == "IC", 3]
+
+# Merge and and only use the columns in our variable list
+IC <- lapply(IC, function(x) x[(names(x)) %in% IC_var])
+IC_df <- do.call("smartbind", IC)
+```
+
+
+
+```{r, warning = FALSE, message = FALSE}
+data <- merge(IC_df, HD_df, by = c("UNITID", "YEAR"), all.x = TRUE, all.y = TRUE)
+data <- merge(data, EFA_df, by.x = c("UNITID", "YEAR"), by.y = c("UNITID", "YEAR"), all.x = TRUE, all.y = TRUE)
+#write.csv(data, "C:/Users/Sarah McDonald/Documents/honorsthesis/raw_data/original_ipeds.csv", row.names = FALSE)
+
+data <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/raw_data/original_ipeds.csv")
+
+```
+
+#####interpolate institution names
+First, I was going to interpolate missing institution names 
+
+I found that only INSTNMs were blank in 1991 and 1992. None of the UNITIDs can be found in the directories for 1991 and 1992. Then I went back to our education data package from Urban institute to check this, and found the same results.
+
+I also check directories found on Google Books and could find the the UNITIDs
+https://play.google.com/books/reader?id=OJ73D2-uMnQC&hl=en&pg=GBS.PR1
+https://play.google.com/books/reader?id=UI6xzGnaLjwC&hl=en&pg=GBS.PP1
+
+THIS NEEDS TO BE CHECKED BECAUSE 6993 OBSERVATIONS IS A LOT.
+
+We remove these observations.
+```{r}
+#library(educationdata)
+#naINSTNM <- data %>% select(INSTNM, UNITID, YEAR) %>% filter(is.na(INSTNM) == TRUE)
+#naINSTNM %>% filter(naINSTNM$UNITID %in% ic1991_hdr$UNITID)
+#naINSTNM %>% filter(naINSTNM$UNITID %in% ic1992_a$UNITID)
+
+
+#test_na_INSTNM <- get_education_data(level = "college-university",
+                    #       source = "ipeds",
+                     #      topic = "fall-enrollment",
+                      #     filters = list(year = 1991, level_of_study = "undergraduate", race =3, sex = 1),
+                       #    by = list("race", "sex"))
+
+
+
+#test2_na_INSTNM <- get_education_data(level = "college-university",
+                  #         source = "ipeds",
+                   #        topic = "directory",
+                    #       filters = list(year = 1991, unitid = 267115))
+library(dplyr)
+
+data <- data %>% filter(is.na(INSTNM) == FALSE)
+```
+
+######Non-state remove
+
+
+Since we find that state are complete after removing our missing 1991 and 1992 schools, we remove the following: American Samoa,Federated States of Micronesia, Guam, Marshall Islands, Northern Marianas, Palau,Puerto Rico, and Virgin Islands as they are outside the scope of our analyses.
+
+
+```{r, warnings = FALSE, message = FALSE}
+
+data <- data %>% filter(STABBR != "AS" & STABBR != "FM" & STABBR != "GU" & STABBR != "MH" & STABBR != "MP" & STABBR != "PW" & STABBR != "PR" & STABBR != "VI")
+
+```
+
+We check to ensure that Sector is consistent with CNTLAFFI. For our analysis, we select nonprofit and private only, and fill in CNTLAFFI.
+```{r}
+# Sector = 3, 6, 9 shows FOR PROFIT, CNTLAFFI shows FOR PROFIT
+data %>% filter((SECTOR== 9 | SECTOR == 6|SECTOR == 3) & CNTLAFFI != 2)
+# only issues are the ones that say "3"... "-1" means NA
+
+
+#Sector = 1,4,7 should got to 1 PUBLIC
+data %>% filter((SECTOR== 7 | SECTOR == 4|SECTOR == 1) & CNTLAFFI != 1) # not an issue because CNTAFFIL ==1
+
+#Sector = 2,5,8 = CNTAFFIL = 3 or 4
+data %>% filter((SECTOR== 8 | SECTOR == 5|SECTOR == 2) & (CNTLAFFI != 3 & CNTLAFFI !=4))
+
+# SECTOR IS ALWAYS PRESENT
+data %>% filter(is.na(SECTOR)==TRUE)
+
+data <- data %>% filter(SECTOR == 1|SECTOR == 4|SECTOR == 7|SECTOR == 2|SECTOR == 5|SECTOR == 8)
+
+#public
+data[data$SECTOR == 1 , "CNTLAFFI"] <- 1
+data[data$SECTOR == 4 , "CNTLAFFI"] <- 1
+data[data$SECTOR == 7 , "CNTLAFFI"] <- 1
+
+
+#remove where all total enrollment counts equal NA
+data <-data %>% filter(is.na(data$EFTOTLT)==FALSE)
+
+
+```
+
+
+This is where we use 2000 values to fill in for 1990-1999 missing values
+```{r}
+library(tidyr)
+#2000 row is always filled for religion, so we will assume 2000 value for 1990-1999
+data %>% select(RELAFFIL, YEAR) %>% filter(YEAR == 2000 & is.na(RELAFFIL) == TRUE)
+data <- data %>% fill(RELAFFIL, .direction = "up")
+
+#only CNTLAFFI for public schools are filled in, so we will fill in the private schools 1990-1999 for the 2000 value
+data %>% select(CNTLAFFI, YEAR) %>% filter(YEAR == 1999 & is.na(CNTLAFFI) == FALSE) %>% group_by(CNTLAFFI) %>% summarise(n= n())
+data <- data %>% fill(CNTLAFFI, .direction = "up")
+
+#all 2000 value degree grants are filled, but 1999 is not. we will fill in for 2000 value
+data %>% select(DEGGRANT, YEAR) %>% filter(YEAR == 2000 & is.na(DEGGRANT) == TRUE)
+data %>% select(DEGGRANT, YEAR) %>% filter(YEAR == 1999 & is.na(DEGGRANT) == FALSE)
+
+data <- data %>% fill(DEGGRANT, .direction = "up")
+
+
+# carnegie will take on 1994 value
+data <- data %>% fill(CARNEGIE, .direction = "up")
+
+
+
+
+
+```
+#We make the category codes meaningful
+
+```{r, warning = FALSE, message = FALSE}
+var <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/variables/variables2.csv")
+sector <- var %>% filter(varname == "SECTOR")
+data <- merge(data, sector[, c("codevalue","valuelabel")], by.x = "SECTOR", by.y = "codevalue", all.x = TRUE)
+data <- subset(data,select=-c(SECTOR))
+colnames(data)[colnames(data) == "valuelabel"] <- "SECTOR"
+```
+
+
+```{r, warning=FALSE, message=FALSE}
+pubprivate <- var %>% filter(varname == "CNTLAFFI")
+
+data <- merge(data, pubprivate[, c("codevalue", "valuelabel")], by.x = "CNTLAFFI", by.y = "codevalue", all.x = TRUE)
+data <- subset(data,select=-c(CNTLAFFI))
+colnames(data)[colnames(data) == "valuelabel"] <- "PUBPRIVATE"
+```
+
+```{r, warning = FALSE, message = FALSE}
+relaff <- var %>% filter(varname == "RELAFFIL")
+
+data <- merge(data, relaff[, c("codevalue", "valuelabel")], by.x = "RELAFFIL", by.y = "codevalue", all.x = TRUE)
+data <- subset(data,select=-c(RELAFFIL))
+colnames(data)[colnames(data) == "valuelabel"] <- "RELAFFIL"
+```
+
+```{r, warning = FALSE, message = FALSE}
+deggrant <- var %>% filter(varname == "DEGGRANT")
+data <- merge(data, deggrant[, c("codevalue", "valuelabel")], by.x = "DEGGRANT", by.y = "codevalue", all.x = TRUE)
+data <- subset(data,select=-c(DEGGRANT))
+colnames(data)[colnames(data) == "valuelabel"] <- "DEGGRANT"
+```
+
+
+Assumption: doctoral I and research I used to be separate. Listed together in 2017 as Doctoral/Research - extensive
+
+```{r, warning = FALSE, message = FALSE}
+carnegie <- var %>% filter(varname == "CARNEGIE")
+data <- merge(data, carnegie[, c("codevalue", "valuelabel")], by.x = "CARNEGIE", by.y = "codevalue", all.x = TRUE)
+data <- subset(data,select=-c(CARNEGIE))
+colnames(data)[colnames(data) == "valuelabel"] <- "CARNEGIE"
+```
+
+
+This is wear we select catholic schools. All schools must have 2017 data.
+
+```{r}
+
+catholic <- data %>% filter(RELAFFIL == "Roman Catholic" & YEAR == 2017) %>% select(UNITID)
+catholic.ids <- unique(catholic$UNITID)
+
+catholic <- data[data$UNITID %in% catholic.ids, ]
+
+
+
+
+data <- catholic
+
+#years <- data %>% select(UNITID, YEAR) %>% group_by(UNITID) %>% summarize(count = n())
+
+
+#remove incomplete observations 28 years * 3(total, UG, Grad) = 84
+
+
+#years <- years %>% filter(count != 84)
+
+#data <- data %>% filter(UNITID %in% years$UNITID)
+
+```
+
+
+
+
+
+# NOW ZIPCODES
+
+# we tried using shape files for school-county-dioceses, but this was inaccurate
+# now we use Zip code to county from HUD 4th Quarter 2017
+# https://www.huduser.gov/portal/datasets/usps_crosswalk.html
+
+
+We make the call to only match 2017 zip codes, as zip codes are not stable over time... we will assume that institutions do not change county over time
+
+https://anthonylouisdagostino.com/a-better-zip5-county-crosswalk/
+https://www.zip-codes.com/zip-code/27695/zip-code-27695.asp
+https://nces.ed.gov/globallocator/index.asp?search=1&State=&city=&zipcode=&miles=&itemname=pardee&sortby=name&School=1&PrivSchool=1&College=1&Status=Search+Finished&Records=104&CS=A56C2DD
+
+
+
+```{r, warnings = FALSE, message = FALSE}
+
+#ZIP MISSING/UNUSABLE COUNTIESE
+#LONG MISSING?UNUSABLE VALUES
+
+
+data$ZIP <- as.character(data$ZIP)
+#detach(package:plyr)    
+library(dplyr)
+data %>% select(ZIP) %>% group_by(nchar(ZIP)) %>% summarize(count = n())
+
+
+data$ZIP <- ifelse(nchar(data$ZIP) == 4,  paste0("0", data$ZIP), data$ZIP)
+
+data$ZIP <- ifelse(nchar(data$ZIP)==10, substr(data$ZIP, 1, 5), data$ZIP)
+
+data$ZIP <- ifelse(nchar(data$ZIP) == 8,  paste0("0", data$ZIP), data$ZIP)
+
+data$ZIP <- ifelse(nchar(data$ZIP)==9, substr(data$ZIP, 1, 5), data$ZIP)
+
+
+library(haven)
+
+zipcode <- read_dta("C:/Users/Sarah McDonald/Documents/honorsthesis/raw_data/ZIP5_County_Crosswalk.dta")
+zipcode$zip5<- as.character(zipcode$zip5)
+
+zipcode$zip5 <- ifelse(nchar(zipcode$zip5)==3,  paste0("00", zipcode$zip5), zipcode$zip5)
+zipcode$zip5 <- ifelse(nchar(zipcode$zip5)==4,  paste0("0", zipcode$zip5), zipcode$zip5)
+
+zipcode$county <- ifelse(nchar(zipcode$county)==4,  paste0("0", zipcode$county), zipcode$county)
+
+
+zip.2017 <- data %>% filter(YEAR == 2017 & LINE == "Total")
+
+
+
+
+#LENOIR COMMUNITY COLLEGE, NC checked NC CC website
+zip.2017[zip.2017$ZIP == "28502" & zip.2017$UNITID == 198817, "ZIP"] <- "28504"
+
+
+#Texas A&M , checked webiste
+zip.2017[zip.2017$ZIP == "75429" & zip.2017$UNITID == 224554, "ZIP"] <- "75428"
+
+#southern methodist checked webstie
+zip.2017[zip.2017$ZIP == "75275" & zip.2017$UNITID == 228246, "ZIP"] <- "75205"
+
+#U Cinncinati website
+
+zip.2017[zip.2017$ZIP == "45221" & zip.2017$UNITID == 201885, "ZIP"] <- "45220"
+
+
+#NICHOLLS STATE UNIVERSITY
+zip.2017[zip.2017$ZIP == "70310" & zip.2017$UNITID == 159966, "ZIP"] <- "70301"
+
+
+#SOUTHERN UNIVERSITY AND A & M COLLEGE webstie to google maps
+zip.2017[zip.2017$ZIP == "70813" & zip.2017$UNITID == 160621, "ZIP"] <- "70807"
+
+#UNIVERSITY OF ARKANSAS AT MONTICELLO website to google maps
+
+zip.2017[zip.2017$ZIP == "71656" & zip.2017$UNITID == 106485, "ZIP"] <- "71655"
+
+
+zip.2017 <- merge(zip.2017[, c("ZIP", "UNITID") ], zipcode[ ,c("zip5", "county")], by.x= "ZIP", by.y = "zip5", all.x = TRUE)
+
+#fix non mergers
+#NCSU, RALeigh NC is in Wake County
+zip.2017[zip.2017$ZIP == "27695" & zip.2017$UNITID == 199193, "county"] <- "37183"
+
+#UA isin Tuscaloosa County
+
+zip.2017[zip.2017$ZIP == "35487" & zip.2017$UNITID == 100751, "county"] <- "01125"
+
+#LINCOLN LAND COMMUNITY COLLEGE is in Sangamon
+
+zip.2017[zip.2017$ZIP == "62794" & zip.2017$UNITID == 146685, "county"] <- "17167"
+
+#UNIVERSITY OF ARKANSAS COMMUNITY COLLEGE-BATESVILLE is in Independence county
+#
+zip.2017[zip.2017$ZIP == "72503" & zip.2017$UNITID == 106999, "county"] <- "05063"
+
+
+data <- merge(data, zip.2017[, c("UNITID", "county")], by = "UNITID", all.x = TRUE )
+
+```
+Now I finally have a full table with complete responses and county! Woooo!
+
+#####CATHOLIC DIOCESE ZIP#####
+Now we connect county to catholic diocese
+
+```{r}
+#Dioceses Shapefiles
+KML <- getKMLcoordinates(kmlfile = unzip(zipfile = "C:/Users/Sarah McDonald/Documents/honorsthesis/raw_data/US_Dioceses.kmz", exdir = "~/honorsthesis/KML"), ignoreAltitude = TRUE)
+cath_geo <- st_read("C:/Users/Sarah McDonald/Documents/honorsthesis/KML/doc.kml")
+
+#counties
+counties <- st_read("C:/Users/Sarah McDonald/Documents/honorsthesis/raw_data/census_2017_shapefiles/tl_2017_us_county.shp")
+counties = st_transform(counties, st_crs(cath_geo))
+#remove islands
+counties <- counties %>% filter(as.numeric(as.character(as.factor(GEOID))) <  60000)
+
+#Clean catholic dioceses description
+cath_geo$Description <- str_extract(cath_geo$Description, 'Diocese(.*)SUM_SUM_POP2010')
+cath_geo$Description <- lapply(cath_geo$Description, function(x) gsub(c("(Diocese)?<.?t(d|r)>(SUM_SUM_POP2010)?"), "", x))
+cath_geo$Description <- trimws(cath_geo$Description)
+colnames(cath_geo)[colnames(cath_geo) == "Description"] <- "Dioceses"
+
+#match county centriod into catholic dioceses
+cent_count <- st_centroid(counties)
+count_dioceses <- st_join(cent_count, cath_geo, all = TRUE)
+
+#remove lat/long (no longer needed)
+count_dioceses<-st_set_geometry(count_dioceses, NULL)
+count_dioceses <- count_dioceses %>% select(GEOID, NAMELSAD, Name, Dioceses, ALAND)
+
+count_dioceses[count_dioceses$NAMELSAD == "San Francisco County", "Dioceses"] <- "San Francisco"
+count_dioceses[count_dioceses$NAMELSAD == "District of Columbia", "Dioceses"] <- "Washington"
+#use school zipcode and dioceses look up from USSCB to confirm, as well as USDA fips code chart
+
+# LEE COUNTY FL
+count_dioceses[count_dioceses$GEOID == 12071, "Dioceses"] <- "Venice"
+# MONROE COUNTY FL
+count_dioceses[count_dioceses$GEOID == 12087, "Dioceses"] <- "Miami"
+#Honolulu COunty HI
+count_dioceses[count_dioceses$GEOID == 15003, "Dioceses"] <- "Honolulu"
+
+#Lake county IL
+count_dioceses[count_dioceses$GEOID == 17097, "Dioceses"] <- "Lansing"
+
+#Somerset County MD
+count_dioceses[count_dioceses$GEOID == 24039, "Dioceses"] <- "Wilmington"
+
+#Barnstable, MA
+count_dioceses[count_dioceses$GEOID == 25001, "Dioceses"] <- "Fall River"
+
+#Suffolk, MA
+count_dioceses[count_dioceses$GEOID == 25025, "Dioceses"] <- "Boston"
+
+# Alpena, MI
+count_dioceses[count_dioceses$GEOID == 26007, "Dioceses"] <- "Gaylord"
+
+#Berrien, MI
+count_dioceses[count_dioceses$GEOID == 26021, "Dioceses"] <- "Kalamazoo"
+
+#Mason, MI
+count_dioceses[count_dioceses$GEOID == 26105, "Dioceses"] <- "Grand Rapids"
+
+#Muskegon, MI
+count_dioceses[count_dioceses$GEOID == 26121, "Dioceses"] <- "Grand Rapids"
+
+#Ottawa, MI
+count_dioceses[count_dioceses$GEOID == 26139, "Dioceses"] <- "Grand Rapids"
+
+#Monroe, NY
+count_dioceses[count_dioceses$GEOID == 36055, "Dioceses"] <- "Rochester"
+
+#Niagara, NY
+count_dioceses[count_dioceses$GEOID == 36063, "Dioceses"] <- "Buffalo"
+
+#New Hanover, NC
+count_dioceses[count_dioceses$GEOID == 37129, "Dioceses"] <- "Raleigh"
+
+#Cuyahoga, OH
+count_dioceses[count_dioceses$GEOID == 39035, "Dioceses"] <- "Cleveland"
+
+#Erie, OH
+count_dioceses[count_dioceses$GEOID == 39043, "Dioceses"] <- "Toledo"
+
+# Lake, OH
+count_dioceses[count_dioceses$GEOID == 39085, "Dioceses"] <- "Cleveland"
+
+# Charleston, SC
+count_dioceses[count_dioceses$GEOID == 45019, "Dioceses"] <- "Charleston"
+
+#Shannon SD is ACTUALLY OGLALA LAKOTA COUNTY
+data[data$county == "46113", "county"]<- "46102"
+
+#Gavleston, TX
+count_dioceses[count_dioceses$GEOID == 48167, "Dioceses"] <- "Galveston-Houston"
+
+#Middlesex, VA
+count_dioceses[count_dioceses$GEOID == 51119, "Dioceses"] <- "Richmond"
+
+#Ashland, WI
+count_dioceses[count_dioceses$GEOID == 55003, "Dioceses"] <- "Superior"
+
+#Kenosham WI
+count_dioceses[count_dioceses$GEOID == 55059, "Dioceses"] <- "Winona"
+
+#Manitowoc WI
+count_dioceses[count_dioceses$GEOID == 55071, "Dioceses"] <- "Green Bay"
+
+#Milwaukee, WI
+count_dioceses[count_dioceses$GEOID == 55079, "Dioceses"] <- "Milwaukee"
+
+#Ozaukee, WI
+count_dioceses[count_dioceses$GEOID == 55089, "Dioceses"] <- "Milwaukee"
+
+#Sheboygan, WI
+count_dioceses[count_dioceses$GEOID == 55117, "Dioceses"] <- "Milwaukee"
+
+
+
+
+dioceses <- cath_geo$Dioceses
+#write.csv(dioceses, "dioceses_from_geo.csv")
+
+data <- merge(data, count_dioceses[, c(1,4,5)], by.x = "county", by.y = "GEOID", all.x = TRUE)
+#test.na <- test %>% select(STABBR, Dioceses, county) %>% filter(is.na(Dioceses)==TRUE) %>% group_by(STABBR, Dioceses)
+#test.na <- unique(test.na)
+
+
+```
+
+
+```{r, warning=FALSE}
+#write.csv(data, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_ipeds_dioceses.csv", row.names = FALSE)
+data <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/cath_ipeds_dioceses.csv")
+data$county <- ifelse(nchar(data$county) == 4,  paste0("0", data$county), data$county)
+```
+
+
+Hispanic Population counts
+https://seer.cancer.gov/popdata/singleages.html
+https://seer.cancer.gov/popdata/popdic.html
+
+```{r, warning= FALSE, message = FALSE}
+his <- read.table("C:/Users/Sarah McDonald/Documents/honorsthesis/raw_data/hispanic_pop.txt")
+#extracting needed variables
+his$Year <- substr(his$V1, 1,4)
+his$State<- substr(his$V1, 5,6)
+his$FIPS<- substr(his$V1, 7,11)
+his$Origin <- substr(his$V1, 15,15)
+his$Population <-substr(his$V1, 19, 26)
+
+#change population to numeric
+his$Population <- as.numeric(his$Population)
+
+#labeling for readability
+his$Origin[his$Origin=="1"] <- "Hispanic"
+his$Origin[his$Origin=="0"] <- "Non-Hispanic"
+
+#detach(package:plyr)    
+
+#counts of population for year, state, fips, origin, and hispanic/nonhispanic
+his <- his %>% group_by(Year, FIPS, Origin) %>% summarize(Population= sum(Population))
+
+#hispanic and nonhispanic columns
+his <- his %>% spread(key = Origin, value = Population)
+
+#total population
+his$total_pop = his$Hispanic + his$`Non-Hispanic`
+
+#percent hispanic
+his$his_prop = (his$Hispanic/his$total_pop)
+
+#https://seer.cancer.gov/seerstat/variables/countyattribs/ruralurban.html
+#These ones will create missing values if not changed
+# fips code 46102 -> 46113
+# fips code 15009/7/3/1 -> 15900 (state data) prior to 2000
+# 08913 -> 08059
+# 08914 -> 08123 
+# 08911 -> 08001
+# 08912 -> 08013
+# Yuma county -> La Paz County 1990-1993: 04910 -> 04027
+
+
+his[his$FIPS == "46113", "FIPS"] <- "46102"
+his[his$FIPS == "08913", "FIPS"] <- "08059"
+his[his$FIPS == "08914", "FIPS"] <- "08123"
+his[his$FIPS == "08911", "FIPS"] <- "08001"
+his[his$FIPS == "08912", "FIPS"] <- "08013"
+his[his$FIPS == "04910", "FIPS"] <- "04027"
+
+
+
+#start here
+HI2000 <- his %>% filter(Year == "2000" & (FIPS == "15001"|FIPS == "15003"|FIPS =="15007"|FIPS == "15009"))
+HI2000$state_his <- sum(HI2000$Hispanic)
+HI2000$share_his <- HI2000$Hispanic/HI2000$state_his
+HI2000$state_pop <- sum(HI2000$total_pop)
+HI2000$share_county_pop <- HI2000$total_pop / HI2000$state_pop
+
+rep(unique(HI2000$FIPS), 10)
+
+HI <- data.frame(Year = rep(1990:1999, each = 4), FIPS = rep(unique(HI2000$FIPS), 10), Hispanic = "", total_pop = "", stringsAsFactors = FALSE)
+
+HI$Hispanic <- as.numeric(HI$Hispanic)
+HI$total_pop <- as.numeric(HI$total_pop)
+
+hi.fips <- HI2000$FIPS
+
+for(i in 1:length(hi.fips)){
+  for(m in 1990:1999){
+est_his <- round( his[his$Year == m & his$FIPS == "15900", "Hispanic"][[1]] * HI2000$share_his[i])
+
+j <- hi.fips[i]
+
+HI[HI$Year == m & HI$FIPS == j, "Hispanic"] <-est_his
+
+est_pop <-round( his[his$Year == m & his$FIPS == "15900", "total_pop"][[1]] * HI2000$share_county_pop[i])
+HI[HI$Year == m & HI$FIPS == j, "total_pop"] <-est_pop
+
+}
+}
+
+HI$his_prop <- HI$Hispanic/HI$total_pop
+HI$`Non-Hispanic` <- HI$total_pop - HI$Hispanic
+
+
+#is a "grouped data frame"
+his <- as.data.frame(his)
+
+
+
+his <- rbind(his, HI)
+
+data <- merge(data, his[, c("Year", "FIPS", "his_prop")], by.x = c("YEAR", "county"), by.y = c("Year", "FIPS"), all.x = TRUE)
+
+#check for NAs
+data %>% filter(is.na(his_prop)==TRUE) %>% select(YEAR, county, UNITID) 
+
+```
+
+
+From 2017 Census shapefiles
+```{r, warning=FALSE, message= FALSE}
+#counties
+pop_dens <- counties %>% select(STATEFP, COUNTYFP, GEOID, ALAND)
+pop_dens<-st_set_geometry(pop_dens, NULL)
+
+pop_dens <- merge(x = pop_dens, y = his[, c("FIPS", "total_pop", "Year")], by.x = "GEOID", by.y = "FIPS", all.x = TRUE)
+
+pop_dens$pop_dens <- pop_dens$total_pop/pop_dens$ALAND
+
+pop_dens <- pop_dens[,c(1,6,7)]
+pop_dens$GEOID <- as.character(as.factor(pop_dens$GEOID))
+
+data <- merge(data, pop_dens, by.x = c("YEAR", "county"), by.y = c("Year", "GEOID"), all.x = TRUE)
+#check NAs
+data %>% filter(is.na(pop_dens)==TRUE) %>% select(YEAR, county, UNITID)
+
+```
+
+
+
+
+annual personal income by county 1969-2017
+https://www.bea.gov/data/income-saving/personal-income-county-metro-and-other-areas
+https://www.economy.com/support/blog/buffet.aspx?did=869A03D1-5D74-4376-A606-00A8C64DDB0B
+#Virginia independent cities are included with their surrounded counties
+```{r, warning= FALSE, message = FALSE}
+income <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/raw_data/income_per_capita.csv")
+
+income<- income[, -c(3:6, 8)]
+income$GeoName <- as.character(income$GeoName)
+income <- separate_rows(income, GeoName, sep = "(,|\\+) (?=.....?)")
+
+
+#remove notes at last three observations
+levels(income$Description)
+income %>% filter(Description == "")
+income[9682:9684,]
+
+income <- income[-c(9682:9684),]
+
+
+
+colnames(income) <- sub("X", "", colnames(income))
+
+income <- income %>% 
+  gather(`1969`, `1970`, `1971`, `1972`, `1973`, `1974`, `1975`, `1976`, `1977`, `1978`, `1979`, `1980`, `1981`, `1982`, `1983`, `1984`, `1985`, `1986`, `1987`, `1988`, `1989`, `1990`, `1991`, `1992`, `1993`, `1994`, `1995`, `1996`, `1997`, `1998`, `1999`, `2000`, `2001`, `2002`, `2003`, `2004`, `2005`, `2006`, `2007`, `2008`, `2009`, `2010`, `2011`, `2012`, `2013`, `2014`, `2015`, `2016`, `2017`, key = "year", value = "amount")
+
+income$Description <- as.character(as.factor(income$Description))
+
+income$Description[income$Description=="Personal income (thousands of dollars)"] <- "personal_income"
+income$Description[income$Description=="Population (persons) 1/"] <- "population"
+income$Description[income$Description=="Per capita personal income (dollars) 2/"] <- "income_per_capita"
+
+income <- income %>% spread(key = Description, value = amount)
+income$year <- as.numeric(income$year)
+
+income <- income[!(income$year < 1990),]
+income$year <- as.character(income$year)
+
+income <- income[!grepl("\\d\\d000", income$GeoFIPS),]
+income <- income[, c(1:4)]
+income$GeoFIPS <- as.character(as.factor(income$GeoFIPS))
+
+income$GeoFIPS <- trimws(income$GeoFIPS, "left")
+
+#fix VA cities here.
+
+#Alleghany
+income[income$GeoName == "Alleghany ", "GeoFIPS"] <- "51005"
+
+# Augusta
+income[income$GeoName == "Augusta", "GeoFIPS"] <- "51015"
+
+#Fairfax
+income[income$GeoName == "Fairfax", "GeoFIPS"] <- "51059"
+
+#Frederick
+income[income$GeoName == "Frederick ", "GeoFIPS"] <- "51069"
+
+#Henry, VA
+income[income$GeoName == "Henry ", "GeoFIPS"] <- "51089"
+
+#Montgomery
+income[income$GeoName == "Montgomery ", "GeoFIPS"] <- "51121"
+
+#Roanoke
+income[income$GeoName == "Roanoke ", "GeoFIPS"] <- "51161"
+
+#Rockbridge
+income[income$GeoName == "Rockbridge", "GeoFIPS"] <- "51163"
+
+#Rockingham
+income[income$GeoName == "Rockingham ", "GeoFIPS"] <- "51165"
+
+#Washington
+income[income$GeoName == "Washington ", "GeoFIPS"] <- "51191"
+
+#Wise
+income[income$GeoName == "Wise ", "GeoFIPS"] <- "51195"
+
+#Charlottesville
+income[income$GeoName == "Charlottesville, VA*", "GeoFIPS"] <- "51540"
+
+#Danville
+income[income$GeoName == "Danville, VA*", "GeoFIPS"] <- "51590"
+
+#Franklin city
+income[income$GeoName == "Franklin, VA*", "GeoFIPS"] <- "51620"
+
+#Franklin county
+income[income$GeoName == "Franklin, VA", "GeoFIPS"] <- "51067"
+
+#Fredericksburg, VA
+income[income$GeoName == "Fredericksburg, VA*", "GeoFIPS"] <- "51630"
+
+#Harrisonburg, VA
+income[income$GeoName == "Harrisonburg, VA*", "GeoFIPS"] <- "51660"
+
+#Lynchburg, VA
+income[income$GeoName == "Lynchburg, VA*", "GeoFIPS"] <- "51680"
+
+#Petersburg, VA
+income[income$GeoName == "Petersburg, VA*", "GeoFIPS"] <- "51730"
+
+#Radford, VA
+income[income$GeoName == "Radford, VA*", "GeoFIPS"] <- "51750"
+
+#Salem, VA
+income[income$GeoName == "Salem, VA*", "GeoFIPS"] <- "51775"
+
+#Stuanton, VA
+income[income$GeoName == "Staunton ", "GeoFIPS"] <- "51790"
+
+#Williamsburg, VA
+income[income$GeoName == "Williamsburg, VA*", "GeoFIPS"] <- "51830"
+
+#Winchester, VA
+income[income$GeoName == "Winchester, VA*", "GeoFIPS"] <- "51840"
+
+# Maui 15009
+income[income$GeoName == "Maui ", "GeoFIPS"] <- "15009"
+
+
+data <- merge(data, income, by.x= c("YEAR", "county"), by.y = c("year", "GeoFIPS"), all.x = TRUE)
+
+#check NAs
+data %>% filter(is.na(income_per_capita)==TRUE) %>% select(YEAR, county, UNITID)
+#primarily virginia colleges, except one hawaii college
+```
+
+
+
+NEED CATHOLIC DATA
+
+
+```{r}
+library(rvest)
+#test Albany
+url <- paste("http://www.catholic-hierarchy.org/diocese/", "d", "albn", ".html", sep="")
+webpage <- read_html(url)
+
+tbl <- webpage %>%
+  html_nodes("table") %>%
+  .[3] %>%
+  html_table(fill = TRUE)
+
+tbl <- as.data.frame((tbl))
+
+tbl$Percent.Catholic <- gsub("%", "", tbl$Percent.Catholic)
+tbl$Percent.Catholic <- as.numeric(tbl$Percent.Catholic)
+tbl$Dioceses <- "albn"
+
+dioceses  <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/dioceses_from_geo.csv")
+dioceses$abbr <- tolower(substr(dioceses$x, 1, 4))
+
+
+# had to hand fix abbreviations that were causing errors
+
+dioceses[dioceses$x == "Albany", "abbr"] <- "albn" 
+
+dioceses[dioceses$x == "Los Angeles", "abbr"] <- "losa" 
+dioceses[dioceses$x == "Des Moines", "abbr"] <- "desm" 
+dioceses[dioceses$x == "El Paso", "abbr"] <- "elpa" 
+dioceses[dioceses$x == "Kansas City KS", "abbr"] <- "kcks" 
+dioceses[dioceses$x == "Kansas City-St. Joseph", "abbr"] <- "kcmo" 
+dioceses[dioceses$x == "La Crosse", "abbr"] <- "lacr" 
+dioceses[dioceses$x == "Las Cruces", "abbr"] <- "lasc" 
+dioceses[dioceses$x == "Las Vegas", "abbr"] <- "lasv" 
+dioceses[dioceses$x == "New Orleans", "abbr"] <- "newo" 
+dioceses[dioceses$x == "New York", "abbr"] <- "newy" 
+dioceses[dioceses$x == "New Ulm", "abbr"] <- "newu" 
+dioceses[dioceses$x == "San Angelo", "abbr"] <- "sang" 
+dioceses[dioceses$x == "San Antonio", "abbr"] <- "snan" 
+dioceses[dioceses$x == "San Bernardino", "abbr"] <- "snbe" 
+dioceses[dioceses$x == "San Diego", "abbr"] <- "sndi" 
+dioceses[dioceses$x == "San Francisco", "abbr"] <- "snfr" 
+dioceses[dioceses$x == "San Jose", "abbr"] <- "snjo" 
+
+dioceses[dioceses$x == "Santa Fe", "abbr"] <- "snfe" 
+dioceses[dioceses$x == "Santa Rosa", "abbr"] <- "snro" 
+dioceses[dioceses$x == "Springfield-Cape Girardeau", "abbr"] <- "spmo" 
+dioceses[dioceses$x == "Springfield in Illinois", "abbr"] <- "spil" 
+dioceses[dioceses$x == "Springfield in Massachusetts", "abbr"] <- "spma" 
+
+
+dioceses[dioceses$x == "St. Augustine", "abbr"] <- "stau" 
+dioceses[dioceses$x == "St. Petersburg", "abbr"] <- "stpe" 
+dioceses[dioceses$x == "St. Cloud", "abbr"] <- "stcl" 
+dioceses[dioceses$x == "St. Paul &amp; Minneapolis", "abbr"] <- "stpa" 
+dioceses[dioceses$x == "St. Louis", "abbr"] <- "stlo" 
+
+list <- list()
+for(i in 1:length(dioceses$abbr)){
+  i <- dioceses$abbr[i]
+  url <-  paste("http://www.catholic-hierarchy.org/diocese/", "d", i, ".html", sep="")
+  webpage <- try(read_html(url))
+  try(
+   list[i] <-webpage %>%
+      html_nodes("table") %>%
+      .[3] %>%
+      html_table(fill = TRUE)
+    )
+  
+
+  
+  
+}
+
+#check for any dioceses not in our dioceses$abbr list
+dioceses %>% select(abbr) %>% filter(!(abbr %in% names(list)) == TRUE)
+
+#find dioceses for which Year and Percent Catholic are not varibles
+
+issues <- c()
+for(i in 1:length(list)) {
+  ifelse(
+  
+    !(c("Year", "Percent Catholic")   %in% names(list[i][[1]])),
+  
+  issues <- append(issues, names(list[i])), print("good")
+  
+  )
+  
+  
+}
+
+#remove issues (we will find them and bind them back)
+list <- within(list, rm(anch, wino, kcks, bato))
+
+#anchorage - did not work in the first loop because it is table 4 not table 3
+url <-  paste("http://www.catholic-hierarchy.org/diocese/", "d", "anch", ".html", sep="")
+webpage <- read_html(url)
+
+  anch <-webpage %>%
+    html_nodes("table") %>%
+    .[4] %>%
+    html_table(fill = TRUE)
+
+#kansas city KS - did not work in the first loop because it is table 4 not table 3
+url <-  paste("http://www.catholic-hierarchy.org/diocese/", "d", "kcks", ".html", sep="")
+webpage <- read_html(url)
+
+kcks <-webpage %>%
+  html_nodes("table") %>%
+  .[4] %>%
+  html_table(fill = TRUE)
+
+#Baton Rouge - did not work in the first loop because it is table 4 not table 3
+url <-  paste("http://www.catholic-hierarchy.org/diocese/", "d", "bato", ".html", sep="")
+webpage <- read_html(url)
+
+bato <-webpage %>%
+  html_nodes("table") %>%
+  .[4] %>%
+  html_table(fill = TRUE)
+
+
+#WINONA does not have data due to recent merge to WINONA ROCHESTER 
+
+
+#assign Dioceses name column , selct year, percent catholic, and dioceses
+for(i in 1:length(list)) {
+  list[i][[1]]$Dioceses <- names(list[i])
+  list[i][[1]] <- list[i][[1]] %>% select("Year", "Percent Catholic", "Dioceses")
+  
+}
+
+#make data frame
+list <- do.call("smartbind", list)
+
+#merge anch, bato, kcks
+
+anch[[1]]$Dioceses <- "anch"
+bato[[1]]$Dioceses <- "bato"
+kcks[[1]]$Dioceses <- "kcks"
+
+anch[[1]] <- anch[[1]] %>% select("Year", "Percent Catholic", "Dioceses")
+bato[[1]] <- bato[[1]] %>% select("Year", "Percent Catholic", "Dioceses")
+kcks[[1]] <- kcks[[1]] %>% select("Year", "Percent Catholic", "Dioceses")
+
+
+
+anch <- as.data.frame(anch)
+bato <- as.data.frame(bato)
+kcks <- as.data.frame(kcks)
+
+colnames(anch)[colnames(anch)== "Percent.Catholic"] <- "Percent Catholic"
+colnames(bato)[colnames(bato)== "Percent.Catholic"] <- "Percent Catholic"
+colnames(kcks)[colnames(kcks)== "Percent.Catholic"] <- "Percent Catholic"
+list <- smartbind(list, anch, bato, kcks)
+
+
+
+
+#removes blank values and where the name was printed in cell instead of year - some of the dioceses name changes specifed in the tables themselves (example, look at MOBILE) 
+list <- list %>% filter(nchar(Year)==4)
+
+#convert percents to numeric
+list$`Percent Catholic` <- gsub("%", "", list$`Percent Catholic`)
+list$`Percent Catholic` <- as.numeric(list$`Percent Catholic`)
+
+# remove percent catholic NA values (most are out of scope, but not a complete data point)
+list <- list %>% filter(is.na(`Percent Catholic`)==FALSE)
+
+
+#zeros are missing values as well (look at Richmond)
+list <-list %>% filter(`Percent Catholic` != 0)
+
+#write.csv(list, "C:/Users/Sarah McDonald/Documents/honorsthesis/raw_data/catholic_hierarchy.csv")
+
+#interpolation: test for birmingham (birm)
+
+list$Year <- as.numeric(list$Year)
+
+i <- unique(list$Dioceses)[1]
+tbl_i <- list %>% filter( list$Dioceses== i)
+
+#approx assumes linear relationship, and fills in values for years between 1990-2017 based on complete observations.
+#rule  indicates  how interpolation is to take place outside the interval [min(x), max(x)]. If rule is 1 then NAs are returned for such points and if it is 2, the value at the closest data extreme is used.For example, if the last data point is in 2016, and 2017 is missing, rather than returning an NA for 2017, 2017 takes on the value for 2016.
+
+app_i <- approx(tbl_i$Year, tbl_i$`Percent Catholic`, xout= 1990:2017,method = "linear", rule = 2)
+
+
+#run for all dioceses
+catholic <- data.frame("Year"=numeric(0), "Percent Catholic"=numeric(0), "Dioceses"=numeric(0))
+
+for( i in 1:length(unique(list$Dioceses))){
+  i <- unique(list$Dioceses)[i]
+  tbl_i <- list %>% filter( list$Dioceses== i)
+  app_i <- approx(tbl_i$Year, tbl_i$`Percent Catholic`, xout= 1990:2017,method = "linear", rule = 2)
+  app_i <- as.data.frame(app_i)
+  app_i$Dioceses <- i
+  colnames(app_i)[colnames(app_i)=="x"] <- "Year"
+  colnames(app_i)[colnames(app_i)=="y"] <- "Percent Catholic"
+  catholic <- rbind(catholic, app_i)
+}
+
+
+
+catholic <- merge(catholic, dioceses[, c("x", "abbr")], by.x="Dioceses", by.y = "abbr")
+catholic <- catholic %>% select("Year", "Percent Catholic", "x")
+colnames(catholic)[colnames(catholic)=="x"] <- "Dioceses"
+
+
+ # merge
+data <- merge(data, catholic, by.x = c("YEAR", "Dioceses"), by.y = c("Year", "Dioceses"), all.x = TRUE)
+cath.na <- data %>% filter(is.na(`Percent Catholic`)==TRUE) %>% select(Dioceses) %>% group_by(Dioceses)
+unique(cath.na) #the winona dicoses is the only one missing
+
+```
+
+# DATA BEFORE NEGATIVE PUBLICITY
+
+```{r, warning=FALSE}
+data <- subset(data, select = -c(GeoName))
+
+#write.csv(data, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/data_socio.csv", row.names = FALSE)
+data <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/data_socio.csv")
+data$county <- ifelse(nchar(data$county) == 4,  paste0("0", data$county), data$county)
+```
+
+
+
+
+
+#negative publicity data
+```{r, warning=FALSE, message=FALSE}
+url <- paste("http://origin.bishop-accountability.org/priestdb/PriestDBbylastName-", "A", ".html", sep="")
+webpage <- read_html(url)
+
+tbl <- webpage %>%
+  html_nodes("table") %>%
+  .[4] %>%
+  html_table(fill = TRUE)
+
+tbl <- as.data.frame((tbl))
+names(tbl) = tbl[1, ] # the first row will be the header
+tbl <- tbl[-1,]
+
+for (i in 2:length(LETTERS)){
+  i <- LETTERS[i]
+  url <- paste("http://origin.bishop-accountability.org/priestdb/PriestDBbylastName-", i, ".html", sep="")
+  webpage <- read_html(url)
+  
+  tbls <- html_nodes(webpage, "table")
+  
+  tbl_i <- webpage %>%
+    html_nodes("table") %>%
+    .[4] %>%
+    html_table(fill = TRUE)
+  
+  tbl_i <- as.data.frame((tbl_i))
+  
+  names(tbl_i) = tbl_i[1, ] # the first row will be the header
+  tbl <- rbind(tbl, tbl_i[-1,])
+}
+
+tbl <-tbl[!apply(tbl == "", 1, all),]
+
+
+#hand classify these
+tbl1 <- tbl %>% filter(str_detect(tbl$Notes, "died|retired"))
+
+#write off entries that have "died or retired" in notes
+#write.csv(tbl1, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/extra_credit.csv", col.names = TRUE)
+
+
+
+# code classify these
+tbl2 <- tbl %>% filter(str_detect(tbl$Notes, "died|retired", negate = TRUE))
+
+# Select source only
+tbl2$Source = str_extract_all(tbl2$`Source/Assignments` , "(Source:.+)(?=Assignments)|(Source:.+$)")
+# Find dates only
+tbl2$Source <- str_extract_all(tbl2$Source, "\\d{1,}\\.\\d{1,}\\.\\d{1,}")
+
+tbl2$public <- ""
+
+for (i in 1: length(tbl2$Source)){
+  y <- tbl2$Source[[i]]
+  y <- str_extract_all(y, "\\d{1,2}$")
+  y <- as.integer(y)
+  y <- ifelse(y>22, y+1900, y+2000)
+  y<- min(y)
+  
+  tbl2$public[i] <- y
+}
+
+tbl1 <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/extra_credit_updated.csv")
+
+tbl2$public <- as.numeric(tbl2$public)
+
+tbl2 <- tbl2 %>% select("Diocese", "public")
+tbl1 <- tbl1 %>% select("Diocese", "public")
+tbl <- rbind(tbl1, tbl2)
+
+tbl <- separate(tbl, col = "Diocese", into = c("Diocese", "State"), sep = ",")
+
+tbl$ID <- as.character(seq.int(nrow(tbl)))
+
+duplicates <- tbl %>% filter(Diocese == "Springfield" | Diocese== "Portland" | Diocese == "Lafayette")
+
+duplicates <- unite(duplicates,  Diocese, c(Diocese, State), sep = "", remove=FALSE)
+
+tbl <- tbl %>% filter(Diocese !=  "Springfield" & Diocese != "Lafayette"& Diocese !="Portland")
+
+tbl <- rbind(tbl, duplicates)
+
+
+
+bishop_pub <-tbl %>% group_by(Diocese, public) %>% tally()
+colnames(bishop_pub)[colnames(bishop_pub)=="n"] <- "bishop_pub"
+
+
+
+dioceses_data <- unique(data$Dioceses)
+dioceses_data <- as.character(as.factor(dioceses_data))
+
+subset(dioceses_bishop, !(dioceses_bishop %in% dioceses_data))
+subset(dioceses_data, !(dioceses_data %in% dioceses_bishop))
+
+bishop_pub$Diocese[bishop_pub$Diocese=="Washington DC"] <- "Washington"
+bishop_pub$Diocese[bishop_pub$Diocese=="Fort Wayne-South Bend"] <- "Fort Wayne - South Bend"
+bishop_pub$Diocese[bishop_pub$Diocese=="Kansas City"] <- "Kansas City KS"
+bishop_pub$Diocese[bishop_pub$Diocese=="St. Paul-Minneapolis"] <- "St. Paul &amp; Minneapolis"
+bishop_pub$Diocese[bishop_pub$Diocese=="Kansas City KS-St. Joseph"] <- "Kansas City-St. Joseph"
+
+bishop_pub$Diocese[bishop_pub$Diocese=="Lafayette IN"] <- "Lafayette in Indiana"
+bishop_pub$Diocese[bishop_pub$Diocese=="Lafayette LA"] <- "Lafayette in Louisiana"
+bishop_pub$Diocese[bishop_pub$Diocese=="Portland ME"] <- "Portland in Maine"
+bishop_pub$Diocese[bishop_pub$Diocese=="Portland OR"] <- "Portland in Oregon"
+bishop_pub$Diocese[bishop_pub$Diocese=="Springfield MA"] <- "Springfield in Massachusetts"
+bishop_pub$Diocese[bishop_pub$Diocese=="Springfield IL"] <- "Springfield in Illinois"
+
+#write.csv(bishop_pub, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/bishop_pub.csv", row.names = FALSE)
+
+bishop_pub<- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/bishop_pub.csv")
+
+
+#dioceses_bishop <- gsub("Fort Wayne-South Bend", "Fort Wayne - South Bend", dioceses_bishop)
+#dioceses_bishop <- gsub("Kansas City", "Kansas City KS", dioceses_bishop)
+#dioceses_bishop<- gsub("St. Paul-Minneapolis", "St. Paul &amp; Minneapolis", dioceses_bishop)
+#dioceses_bishop<- gsub("Kansas City KS-St. Joseph", "Kansas City-St. Joseph", dioceses_bishop)
+
+
+#dioceses_bishop<- gsub("Lafayette IN", "Lafayette in Indiana", dioceses_bishop)
+#dioceses_bishop<- gsub("Lafayette LA", "Lafayette in Louisiana", dioceses_bishop)
+#dioceses_bishop<- gsub("Portland ME", "Portland in Maine", dioceses_bishop)
+#dioceses_bishop<- gsub("Portland OR", "Portland in Oregon", dioceses_bishop)
+#dioceses_bishop<- gsub("Springfield MA", "Springfield in Massachusetts", dioceses_bishop)
+#dioceses_bishop<- gsub("Springfield IL", "Springfield in Illinois", dioceses_bishop)
+data <- merge(data, bishop_pub, by.x = c("YEAR", "Dioceses"),by.y =c("public", "Diocese"), all.x = TRUE)
+
+
+# if bishop accountability merged as NA, we assume this equals to 0 because no priest was reported for the year and dioceses
+data$bishop_pub[is.na(data$bishop_pub) == TRUE] <- 0
+
+```
+
+Lexis Nexis
+```{r}
+arch <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/raw_data/archdioceses-nexis.csv", header = FALSE)
+dioceses<- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/raw_data/dioceses-nexis.csv", header = FALSE)
+
+
+arch <- arch %>% select(V2, V3)
+
+colnames(arch)[colnames(arch)== "V2" ] <- "dioceses"
+colnames(arch)[colnames(arch)== "V3" ] <- "nexis"
+
+dioceses <- dioceses %>% select(V1, V2)
+
+colnames(dioceses)[colnames(dioceses)== "V1" ] <- "dioceses"
+colnames(dioceses)[colnames(dioceses)== "V2" ] <- "nexis"
+
+
+nexis <- rbind(arch, dioceses)
+
+nexis$dioceses <- as.character(nexis$dioceses)
+
+
+nexis <- nexis %>% separate(dioceses,c("dioceses", "year"),  sep = "_")
+
+
+
+data$Dioceses <- as.character(data$Dioceses)
+
+data$Dioceses[data$Dioceses == "St. Paul &amp; Minneapolis"] <- "St. Paul and Minneapolis"
+
+
+missing <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/raw_data/missing-nexis.csv")
+
+nexis <- rbind(nexis, missing)
+
+#write.csv(nexis, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/nexis.csv")
+nexis <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/nexis.csv")
+#check that dioceses match
+not_in_cath <- data %>% select(Dioceses) %>% filter(!(Dioceses %in% nexis$dioceses) == TRUE)
+not_in_cath <- unique(not_in_cath)
+
+
+data <- merge(data, nexis, by.x = c("YEAR", "Dioceses"), by.y = c("year", "dioceses"), all.x = TRUE)
+
+```
+
+
+
+
+
+
+# Percent Change TOTAL Enrollment
+```{r}
+data$EFTOTLT_1 <- 0
+data$EFTOTLM_1 <- 0
+data$EFHISPT_1 <- 0
+
+data$bishop_pub_1 <- 0
+data$bishop_pub_2 <- 0
+data$bishop_pub_3 <- 0
+
+data$EFTOTLT_2 <- 0
+data$EFTOTLM_2 <- 0
+data$EFHISPT_2 <- 0
+
+data$EFTOTLT_3 <- 0
+data$EFTOTLM_3 <- 0
+data$EFHISPT_3 <- 0
+
+for(k in 2:length(unique(data$YEAR))){ 
+  
+  k <- unique(data$YEAR)[k]
+    
+    for (j in 1:length(unique(data$LINE))){
+
+      j <- unique(data$LINE)[j]
+
+      for (i in 1:length(unique(data$UNITID))){
+      
+        i <- unique(data$UNITID)[i]
+   try(
+  data[data$UNITID == i & data$LINE == j & data$YEAR == k, "EFTOTLT_1"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == k-1, "EFTOTLT"])
+  try(
+  data[data$UNITID == i & data$LINE == j & data$YEAR == k, "EFTOTLM_1"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == k-1, "EFTOTLM"])
+ try(
+  data[data$UNITID == i & data$LINE == j & data$YEAR == k, "EFHISPT_1"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == k-1, "EFHISPT"])
+ try( 
+  data[data$UNITID == i & data$LINE == j & data$YEAR == k, "bishop_pub_1"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == k-1, "bishop_pub"]  )
+
+      }
+    }
+} 
+
+for(l in 3:length(unique(data$YEAR))){ 
+  
+  l <- unique(data$YEAR)[l]
+    
+    for (j in 1:length(unique(data$LINE))){
+    
+      j <- unique(data$LINE)[j]
+
+      for (i in 1:length(unique(data$UNITID))){
+      
+        i <- unique(data$UNITID)[i]
+   
+try(
+  data[data$UNITID == i & data$LINE == j & data$YEAR == l, "EFTOTLT_2"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == l-2, "EFTOTLT"]
+  )
+try(
+  data[data$UNITID == i & data$LINE == j & data$YEAR == l, "EFTOTLM_2"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == l-2, "EFTOTLM"])
+ try(
+  data[data$UNITID == i & data$LINE == j & data$YEAR == l, "EFHISPT_2"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == l-2, "EFHISPT"])
+try(
+ 
+   data[data$UNITID == i & data$LINE == j & data$YEAR == l, "bishop_pub_2"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == l-2, "bishop_pub"])
+  
+  
+      }
+    }
+  } 
+
+for(m in 4:length(unique(data$YEAR))){ 
+  
+  m <- unique(data$YEAR)[m]
+    
+    for (j in 1:length(unique(data$LINE))){
+    
+      j <- unique(data$LINE)[j]
+
+      for (i in 1:length(unique(data$UNITID))){
+      
+        i <- unique(data$UNITID)[i]
+try(
+  data[data$UNITID == i & data$LINE == j & data$YEAR == m, "EFTOTLT_3"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == m-3, "EFTOTLT"]
+  )
+try(
+  data[data$UNITID == i & data$LINE == j & data$YEAR == m, "EFTOTLM_3"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == m-3, "EFTOTLM"])
+ try(
+  data[data$UNITID == i & data$LINE == j & data$YEAR == m, "EFHISPT_3"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == m-3, "EFHISPT"])
+ try(
+   data[data$UNITID == i & data$LINE == j & data$YEAR == m, "bishop_pub_3"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == m-3, "bishop_pub"]
+ )
+  
+      }
+    }
+  } 
+
+
+
+
+
+
+
+
+
+data[data$YEAR == 1990, "EFTOTLT_1"] <- NA
+data[data$YEAR == 1990, "EFTOTLM_1"] <- NA
+data[data$YEAR == 1990, "EFHISPT_1"] <- NA
+data[data$YEAR == 1990, "bishop_pub_1"] <- NA
+data[data$YEAR == 1990 | data$YEAR == 1991, "EFTOTLT_2"] <- NA
+data[data$YEAR == 1990 | data$YEAR == 1991, "EFTOTLM_2"] <- NA
+data[data$YEAR == 1990 | data$YEAR == 1991, "EFHISPT_2"] <- NA
+data[data$YEAR == 1990 | data$YEAR == 1991, "bishop_pub_2"] <- NA
+data[data$YEAR == 1990 | data$YEAR == 1991| data$YEAR == 1992, "EFTOTLT_3"] <- NA
+data[data$YEAR == 1990 | data$YEAR == 1991| data$YEAR == 1992, "EFTOTLM_3"] <- NA
+data[data$YEAR == 1990 | data$YEAR == 1991| data$YEAR == 1992, "EFHISPT_3"] <- NA
+data[data$YEAR == 1990 | data$YEAR == 1991 | data$YEAR == 1992, "bishop_pub_3"] <- NA
+
+data$bishop_pub_sum_3 <- data$bishop_pub_1 + data$bishop_pub_2 + data$bishop_pub_3
+
+
+```
+  
+
+
+
+
+
+`
+
+```{r}
+data$nexis_1 <- 0
+data$nexis_2 <- 0
+data$nexis_3 <- 0
+
+for(k in 2:length(unique(data$YEAR))){ 
+  
+  k <- unique(data$YEAR)[k]
+    
+    for (j in 1:length(unique(data$LINE))){
+    
+      j <- unique(data$LINE)[j]
+
+      for (i in 1:length(unique(data$UNITID))){
+      
+        i <- unique(data$UNITID)[i]
+        try(
+  data[data$UNITID == i & data$LINE == j & data$YEAR == k, "nexis_1"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == k-1, "nexis"]  
+        )
+
+      }
+    }
+} 
+
+
+for(l in 3:length(unique(data$YEAR))){ 
+  
+  l <- unique(data$YEAR)[l]
+    
+    for (j in 1:length(unique(data$LINE))){
+    
+      j <- unique(data$LINE)[j]
+
+      for (i in 1:length(unique(data$UNITID))){
+      
+        i <- unique(data$UNITID)[i]
+  
+ try(
+   data[data$UNITID == i & data$LINE == j & data$YEAR == l, "nexis_2"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == l-2, "nexis"]
+ )
+  
+      }
+    }
+  } 
+
+for(m in 4:length(unique(data$YEAR))){ 
+  
+  m <- unique(data$YEAR)[m]
+    
+    for (j in 1:length(unique(data$LINE))){
+    
+      j <- unique(data$LINE)[j]
+
+      for (i in 1:length(unique(data$UNITID))){
+      
+        i <- unique(data$UNITID)[i]
+
+ try(
+   data[data$UNITID == i & data$LINE == j & data$YEAR == m, "nexis_3"] <-
+      data[data$UNITID == i & data$LINE == j & data$YEAR == m-3, "nexis"]
+ )
+  
+      }
+    }
+} 
+
+data[data$YEAR == 1990, "nexis_1"] <- NA
+data[data$YEAR == 1990 | data$YEAR == 1991, "nexis_2"] <- NA
+data[data$YEAR == 1990 | data$YEAR == 1991 | data$YEAR == 1992, "nexis_3"] <- NA
+
+data$nexis_sum_3 <- data$nexis_1 + data$nexis_2 + data$nexis_3
+
+
+```
+
+```{r}
+# Three Year Percent Change TOTAL Enrollment
+
+data$EFTOTLT_3_change <- 0
+
+for(k in 4:length(unique(data$YEAR))){ 
+  
+  k <- unique(data$YEAR)[k]
+  for (j in 1:length(unique(data$LINE))){
+    
+    j <- unique(data$LINE)[j]
+    for (i in 1:length(unique(data$UNITID))){
+      
+      i <- unique(data$UNITID)[i]
+    try(
+      
+  # if 2016 == 0     
+if (data[data$UNITID== i & data$LINE == j & data$YEAR == k-3, "EFTOTLT"] == 0){
+  
+  #and 2017 ==0, then percent change = 0
+  if(data[data$UNITID== i & data$LINE == j & data$YEAR == k, "EFTOTLT"] == 0){
+    
+    data[data$UNITID == i & data$LINE == j & data$YEAR == k, "EFTOTLT_3_change"] <- 0
+    
+    # and 2017 = n, then percent change = 100 (so that we do not have major outliers)
+  } else {
+    data[data$UNITID == i & data$LINE == j & data$YEAR == k, "EFTOTLT_3_change"] <- 100
+ 
+  }
+  
+  #else, use typical percent chaneg function
+} else {
+  
+       m <- ((data[data$UNITID== i & data$LINE == j & data$YEAR == k, "EFTOTLT"] -  data[data$UNITID== i & data$LINE == j & data$YEAR == k-3, "EFTOTLT"])
+   /data[data$UNITID== i & data$LINE == j & data$YEAR == k-3, "EFTOTLT"])*100
+  
+  data[data$UNITID == i & data$LINE == j & data$YEAR == k, "EFTOTLT_3_change"] <- m
+    
+}
+)
+    }
+  }
+} 
+data[data$YEAR == 1990, "EFTOTLT_3_change"] <- NA
+data[data$YEAR == 1991, "EFTOTLT_3_change"] <- NA
+data[data$YEAR == 1992, "EFTOTLT_3_change"] <- NA
+
+data <-  subset(data,select=-c(X))
+
+#write.csv(data, "C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/final_dataset.csv", row.names = FALSE)
+
+
+```
+
+
+
+
+
