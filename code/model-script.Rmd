@@ -4,8 +4,7 @@ author: "Sarah McDonald"
 date: "February 1, 2020"
 output:
   html_document: default
-  pdf_document: default
-  word_document: default
+  theme: styles.css
 ---
 
 ```{r, message = FALSE, warning = FALSE}
@@ -18,6 +17,7 @@ library(jtools)
 library(huxtable)
 library(ggplot2)
 library(tidyr)
+
 
 data <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/final_dataset.csv")
 
@@ -395,24 +395,81 @@ It is interesting that these are not the same top five
 ```{r}
 bishop_pub <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/bishop_pub.csv")
 
-  
-bishop_pub %>% filter(public < 2018 & 1989 < public ) %>% group_by(Diocese) %>% summarise(total = sum(bishop_pub)) %>% arrange(desc(total)) %>% top_n(10, total)
-  
+
+levels(bishop_pub$Diocese)[levels(bishop_pub$Diocese)=="St. Paul &amp; Minneapolis"] <- "St. Paul and Minneapolis"
+
+kable(bishop_pub %>% filter(public < 2018 & 1989 < public ) %>% 
+        group_by(Diocese) %>% 
+        summarise(Count = sum(bishop_pub)) %>% 
+        arrange(desc(Count)) %>% 
+        top_n(10, Count), caption = "TABLE 1: Bishop Accountability Top 10 Most Frequent Dioceses")%>% 
+    kable_styling(font_size = 14, full_width = F) %>%
+   footnote(general = "Bishop Accountability", general_title = "Source: ") %>%
+    column_spec(2, width = "15em")%>%as_image(file = "table1.png")
+
   bishop_figure <-bishop_pub %>% filter(public < 2018 & 1989< public) %>% group_by(public) %>% summarize(total = n())
 
   ggplot(bishop_figure, aes(x=public, y=total)) +
-  geom_line() +
-  labs(title = "Bishop Publicity: Count of Negative Publicity for Priests Over Time")
+    geom_line() +
+    scale_x_continuous(breaks = c(1990:2017), labels = c(1990:2017)) +
+    scale_y_continuous(breaks = c(0, 25, 50, 75, 100, 125, 150), 
+                       labels = c(0, 25, 50, 75, 100, 125, 150),
+                       limits = c(0, 150), expand = c(0,0))+
+    labs(title = "Figure 3: Count of Bishop Accountability Negative Publicity \nCases Over Time", 
+         x = "Year", 
+         y ="Count of Negative Publicity Cases", 
+         caption = "Source: Bishop Accountability") + 
+    theme_classic() +
+      theme(plot.title = element_text(size = 16, face = "bold"),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12), 
+        axis.text.x = element_text(size = 8), 
+        axis.text.y = element_text(size =8), 
+        plot.caption= element_text(hjust = 0))
+  ggsave("figure3.png", width = 8.5)  
   
   
 nexis <- read.csv("C:/Users/Sarah McDonald/Documents/honorsthesis/manipulated_data/nexis.csv")
-#bishop_pub <- 
+
+colnames(nexis)[colnames(nexis) == "dioceses"]  <- "Diocese"
+
+
+kable(nexis %>% filter(year < 2018 & 1989 < year ) %>% 
+        group_by(Diocese) %>% 
+        summarise(Count = sum(nexis)) %>% 
+        arrange(desc(Count)) %>% 
+        top_n(10, Count), caption = "TABLE 2: Nexis Uni Top 10 Most Frequent Dioceses")%>% 
+    kable_styling(font_size = 14, full_width = F) %>%
+   footnote(general = "Nexis Uni", general_title = "Source: ") %>%
+    column_spec(2, width = "15em")%>%as_image(file = "table2.png")
   
-  nexis %>% filter(year < 2018 & 1989 < year ) %>% group_by(dioceses) %>% summarise(total = sum(nexis)) %>% arrange(desc(total)) %>% top_n(10, total)
-  
-  
+
   
   nexis_figure <- nexis %>% filter(year < 2018 & 1989 < year) %>% group_by(year) %>% summarise(total = sum(nexis))
+  
+  
+  
+  
+  
+  ggplot(nexis_figure, aes(x=year, y=total)) +
+    geom_line() +
+    scale_x_continuous(breaks = c(1990:2017), labels = c(1990:2017)) +
+    scale_y_continuous(breaks = c(0, 250, 500, 750, 1000), 
+                       labels = c(0, 250, 500, 750, 1000),
+                      limits = c(0, 1000), expand = c(0,0))+
+    labs(title = "Figure 4: Count of Nexis Uni Negative Publicity \nNewswires Over Time", 
+         x = "Year", 
+         y ="Count of Negative Publicity Newswires", 
+         caption = "Source: Nexis Uni") + 
+    theme_classic() +
+      theme(plot.title = element_text(size = 16, face = "bold"),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12), 
+        axis.text.x = element_text(size = 8), 
+        axis.text.y = element_text(size =8), 
+        plot.caption= element_text(hjust = 0))
+  ggsave("figure4.png", width = 8.5)  
+  
 
   ggplot(nexis_figure, aes(x=year, y=total)) +
   geom_line() +
@@ -496,13 +553,33 @@ library(ggplot2)
 ggplot(data[data$LINE == "Total", ], aes(x= nexis_sum_3, y = EFTOTLT))+
   geom_point() +
   theme_classic() +
-  labs(title = "Nexis Publicity VS Total Enrollment", x = "Nexis Publicity", y = "Total Enrollment")
-
+  labs(title = "FIGURE 1: NexisUni Publicity and Total Enrollment", 
+       x = "Nexis Uni Publicity", 
+       y = "Total Enrollment", 
+       caption = "Sources: Integrated Postsecondary Education Data System; Nexis Uni") +
+  theme(plot.title = element_text(size = 16, face = "bold"),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12), 
+        axis.text.x = element_text(size = 10), 
+        axis.text.y = element_text(size =10), 
+        plot.caption= element_text(hjust = 0))
+ggsave("figure1.png")
 
 ggplot(data[data$LINE == "Total", ], aes(x= bishop_pub_sum_3, y = EFTOTLT))+
   geom_point()+
   theme_classic()+
-  labs(title = "Bishop Accountability Publicity VS Total Enrollment", x = "Bishop Accountability Publicity", y = "Total Enrollment")
+  labs(title = "FIGURE 2: Bishop Accountability Publicity \nand Total Enrollment", 
+       x = "Bishop Accountability Publicity", 
+       y = "Total Enrollment",
+       caption = "Sources: Integrated Postsecondary Education Data System; Bishop Accountability")+
+  theme(plot.title = element_text(size = 16, face = "bold"),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12), 
+        axis.text.x = element_text(size = 10), 
+        axis.text.y = element_text(size =10), 
+        plot.caption= element_text(hjust = 0))
+
+ggsave("figure2.png")
 
 
 ```
